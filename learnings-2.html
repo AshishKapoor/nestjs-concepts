@@ -46,6 +46,10 @@
   h1 { font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; margin: 18px 0 10px; letter-spacing: -.02em; }
   h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .sub { color: var(--muted); font-size: 18px; max-width: 760px; }
+  .series{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 4px;}
+  .series a{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;}
+  .series a:hover{color:var(--ink);}
+  .series a.cur{color:#fff;background:linear-gradient(90deg,rgba(110,168,254,.3),rgba(139,123,255,.3));border-color:rgba(139,123,255,.5);font-weight:700;}
   .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
   .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; min-width: 130px; }
   .stat b { display: block; font-size: 22px; color: var(--ink); }
@@ -113,7 +117,15 @@
   <div class="hero-inner">
     <span class="kicker">Part 2 · NestJS · TypeORM · Postgres</span>
     <h1>From an in-memory array to a <span class="grad">real database</span></h1>
-    <p style="margin:10px 0 0;font-size:14px;"><a href="learnings-1.html">← Part 1: NestJS fundamentals (the Tasks API before the database)</a></p>
+    <div class="series">
+      <a href="learnings-1.html">1 · Fundamentals</a>
+      <a class="cur">2 · Database</a>
+      <a href="learnings-3.html">3 · Auth</a>
+      <a href="learnings-4.html">4 · Config</a>
+      <a href="learnings-5.html">5 · API Docs</a>
+      <a href="learnings-6.html">6 · Async &amp; Scale</a>
+      <a href="learnings-7.html">7 · Lifecycle</a>
+    </div>
     <p class="sub">A guided write-up of how the Tasks API swapped its in-memory store for Postgres via
     <code>@nestjs/typeorm</code> — entities, injected repositories, and migrations — plus the bug we hit,
     why each design choice was made, and what an adversarial code review confirmed.</p>
