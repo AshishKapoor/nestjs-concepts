@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS Lifecycle Hooks: startup &amp; graceful shutdown</title>
+<style>
+  :root{--bg:#0f1320;--panel:#171c2e;--panel-2:#1d2336;--ink:#e7ebf6;--muted:#9aa6c4;--line:#2a3150;--accent:#6ea8fe;--accent-2:#8b7bff;--green:#45c98a;--amber:#f3c969;--red:#ff6b81;--code-bg:#0b0e18;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;}html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px;}
+  header.hero{background:radial-gradient(1200px 400px at 15% -10%,rgba(110,168,254,.22),transparent 60%),radial-gradient(900px 360px at 95% 0%,rgba(139,123,255,.20),transparent 55%),var(--panel);border-bottom:1px solid var(--line);padding:56px 22px 40px;}
+  .hero-inner{max-width:1080px;margin:0 auto;}
+  .kicker{display:inline-block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--accent);background:rgba(110,168,254,.10);border:1px solid rgba(110,168,254,.30);padding:5px 11px;border-radius:999px;}
+  h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em;}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .sub{color:var(--muted);font-size:18px;max-width:760px;}
+  .series{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 4px;}
+  .series a{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;}
+  .series a:hover{color:var(--ink);} .series a.cur{color:#fff;background:linear-gradient(90deg,rgba(110,168,254,.3),rgba(139,123,255,.3));border-color:rgba(139,123,255,.5);font-weight:700;}
+  .stat-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:110px;} .stat b{display:block;font-size:22px;} .stat span{font-size:12.5px;color:var(--muted);}
+  h2{font-size:26px;margin:54px 0 6px;letter-spacing:-.01em;scroll-margin-top:20px;} h2 .num{color:var(--accent);margin-right:10px;}
+  h3{font-size:18.5px;margin:30px 0 6px;color:#d6deff;} h2 + .lead{color:var(--muted);margin-top:4px;}
+  p{margin:12px 0;} a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
+  code{font-family:var(--mono);font-size:.9em;background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:6px;color:#d9e2ff;}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;margin:14px 0;} pre code{background:none;padding:0;font-size:13.5px;line-height:1.6;color:#cdd6f4;}
+  .cmt{color:#6f7aa3;}.kw{color:#c792ea;}.str{color:#c3e88d;}.fn{color:#82aaff;}.ty{color:#ffcb6b;}.nm{color:#f78c6c;}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:30px;} .toc h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);} .toc ol{margin:0;padding-left:20px;} .toc li{margin:5px 0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 22px 18px;margin:18px 0;}
+  .callout{border-radius:12px;padding:14px 16px 14px 18px;margin:18px 0;border:1px solid var(--line);border-left-width:4px;background:var(--panel-2);} .callout .ct{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;} .callout p{margin:4px 0;}
+  .callout.why{border-left-color:var(--accent);} .callout.why .ct{color:var(--accent);} .callout.warn{border-left-color:var(--amber);} .callout.warn .ct{color:var(--amber);} .callout.ok{border-left-color:var(--green);} .callout.ok .ct{color:var(--green);}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;} th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;} th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;} td code{white-space:nowrap;}
+  .ladder{list-style:none;padding:0;margin:16px 0;}
+  .ladder li{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);}
+  .ladder .n{flex:0 0 28px;height:28px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent);font-family:var(--mono);}
+  .ladder code{white-space:nowrap;} .ladder .d{color:var(--muted);font-size:14px;}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;} .pill.ok{background:rgba(69,201,138,.14);color:var(--green);border:1px solid rgba(69,201,138,.3);}
+  .file{font-family:var(--mono);font-size:12.5px;color:var(--accent-2);background:rgba(139,123,255,.10);border:1px solid rgba(139,123,255,.25);padding:2px 9px;border-radius:6px;}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0;} footer{color:var(--muted);font-size:13.5px;text-align:center;margin-top:60px;} ul.tight li{margin:4px 0;}
+  .done{background:linear-gradient(90deg,rgba(69,201,138,.12),rgba(110,168,254,.10));border:1px solid rgba(69,201,138,.3);border-radius:14px;padding:18px 22px;margin:24px 0;}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 7 · Lifecycle Hooks</span>
+    <h1>Clean startup, <span class="grad">graceful shutdown</span></h1>
+    <div class="series">
+      <a href="learnings-1.html">1 · Fundamentals</a>
+      <a href="learnings-2.html">2 · Database</a>
+      <a href="learnings-3.html">3 · Auth</a>
+      <a href="learnings-4.html">4 · Config</a>
+      <a href="learnings-5.html">5 · API Docs</a>
+      <a href="learnings-6.html">6 · Async &amp; Scale</a>
+      <a class="cur">7 · Lifecycle</a>
+    </div>
+    <p class="sub">The hooks Nest calls as the app boots and as it stops — <code>onModuleInit</code>,
+    <code>onApplicationBootstrap</code>, and the shutdown trio — plus the <code>enableShutdownHooks()</code> that makes a
+    container's <code>SIGTERM</code> close the DB pool and drain the queue instead of yanking the cord.</p>
+    <div class="stat-row">
+      <div class="stat"><b>5</b><span>hooks, ordered</span></div>
+      <div class="stat"><b>SIGTERM</b><span>captured</span></div>
+      <div class="stat"><b>2</b><span>unit tests</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#why">Why lifecycle hooks</a></li>
+      <li><a href="#order">The order, verified</a></li>
+      <li><a href="#code">One provider, every hook</a></li>
+      <li><a href="#shutdown">What graceful shutdown buys you</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#series">The series, complete</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="why"><span class="num">01</span>Why lifecycle hooks</h2>
+  <p class="lead">Resources need a clean open and a clean close.</p>
+  <p>Connections, pools, queues, timers, and caches all need to be set up after the app is wired and torn down before it
+  exits. Nest exposes named hooks for each phase so you can put that logic in the right place — and, crucially, run
+  teardown <b>before the process dies</b> so in-flight work finishes and external systems aren't left with dangling
+  connections. You've already used these implicitly: the DB seeding (Part 2), the admin seed (Part 3), and the
+  <code>enableShutdownHooks()</code> that lets TypeORM and Bull clean up.</p>
+
+  <h2 id="order"><span class="num">02</span>The order, verified <span class="pill ok">from the logs</span></h2>
+  <p>A single provider implementing all five hooks revealed the exact sequence at runtime — startup top-down, then a
+  <code>SIGTERM</code> triggering teardown:</p>
+  <ol class="ladder">
+    <li><span class="n">↑1</span><div><code>onModuleInit()</code><div class="d">this module's dependencies are ready — open connections, seed data</div></div></li>
+    <li><span class="n">↑2</span><div><code>onApplicationBootstrap()</code><div class="d">ALL modules initialized — the app is about to start listening</div></div></li>
+    <li><span class="n">↓1</span><div><code>onModuleDestroy()</code><div class="d">release this module's resources</div></div></li>
+    <li><span class="n">↓2</span><div><code>beforeApplicationShutdown(signal)</code><div class="d">last chance before teardown; receives the signal name</div></div></li>
+    <li><span class="n">↓3</span><div><code>onApplicationShutdown(signal)</code><div class="d">app is closing — pools/queues get closed here</div></div></li>
+  </ol>
+<pre><code>[Lifecycle] startup 1/2 · onModuleInit — module deps ready
+[Lifecycle] startup 2/2 · onApplicationBootstrap — all modules ready, about to listen
+<span class="cmt">… kill -TERM &lt;pid&gt; …</span>
+[Lifecycle] shutdown 1/3 · onModuleDestroy — releasing module resources
+[Lifecycle] shutdown 2/3 · beforeApplicationShutdown (signal=SIGTERM)
+[Lifecycle] shutdown 3/3 · onApplicationShutdown (signal=SIGTERM) — up ~0s, resources closed</code></pre>
+
+  <h2 id="code"><span class="num">03</span>One provider, every hook</h2>
+  <p class="lead"><span class="file">src/common/lifecycle/lifecycle.service.ts</span></p>
+<pre><code><span class="fn">@Injectable</span>()
+<span class="kw">export class</span> <span class="ty">LifecycleService</span>
+  <span class="kw">implements</span> <span class="ty">OnModuleInit</span>, <span class="ty">OnApplicationBootstrap</span>,
+    <span class="ty">OnModuleDestroy</span>, <span class="ty">BeforeApplicationShutdown</span>, <span class="ty">OnApplicationShutdown</span> {
+
+  <span class="fn">onApplicationShutdown</span>(signal?: <span class="ty">string</span>) {
+    <span class="kw">this</span>.logger.<span class="fn">log</span>(<span class="str">`onApplicationShutdown (signal=${signal})`</span>);  <span class="cmt">// e.g. SIGTERM</span>
+  }
+  <span class="cmt">// …the other four hooks log their phase too</span>
+}</code></pre>
+  <p>In real code you implement only the hooks you need — a provider that opens a gRPC channel implements
+  <code>onModuleInit</code> + <code>onModuleDestroy</code>; one that flushes metrics implements
+  <code>onApplicationShutdown</code>. Implementing an interface is all it takes; Nest discovers and calls it.</p>
+
+  <h2 id="shutdown"><span class="num">04</span>What graceful shutdown buys you</h2>
+  <div class="callout why">
+    <div class="ct">The one line that makes it work</div>
+    <p><code>app.enableShutdownHooks()</code> in <span class="file">main.ts</span> (added back in Part 2) registers the
+    <code>SIGTERM</code>/<code>SIGINT</code> listeners. Without it, the shutdown hooks never fire — the process just
+    dies. With it, a container told to stop (a Kubernetes rollout, a <code>docker stop</code>) gives the app a moment to:</p>
+  </div>
+  <table>
+    <tr><th>Subsystem</th><th>What its shutdown hook does</th></tr>
+    <tr><td>TypeORM (Part 2)</td><td><code>DataSource.destroy()</code> — closes the Postgres connection pool</td></tr>
+    <tr><td>Bull (Part 6)</td><td>closes the queue's Redis connections; lets in-flight jobs settle</td></tr>
+    <tr><td>Your providers</td><td>flush buffers, deregister from service discovery, close sockets</td></tr>
+  </table>
+
+  <h2 id="gotchas"><span class="num">05</span>Gotchas</h2>
+  <ul class="tight">
+    <li><b>Hooks are inert without <code>enableShutdownHooks()</code></b> — and it's opt-in because attaching process
+    signal listeners has a small cost Nest doesn't impose by default.</li>
+    <li><b>Shutdown hooks add latency to exit.</b> Keep them fast and don't start new work in them; a stuck hook delays
+    the process from terminating.</li>
+    <li><b>Startup is bottom-up, shutdown unwinds it.</b> Don't assume another module's resource is still open in your
+    <code>onModuleDestroy</code> — order across modules isn't something to rely on for correctness.</li>
+    <li><b>Async hooks are awaited.</b> Return a promise and Nest waits for it — handy for genuinely async teardown.</li>
+  </ul>
+
+  <h2 id="series"><span class="num">06</span>The series, complete</h2>
+  <div class="done">
+    <p style="margin:0 0 8px;font-size:17px;"><b>🎉 All seven parts shipped.</b> The little in-memory Tasks API is now
+    a database-backed, authenticated, validated, self-documenting, scalable service with clean startup and shutdown.</p>
+  </div>
+  <table>
+    <tr><th>#</th><th>Part</th><th>Adds</th></tr>
+    <tr><td>1</td><td><a href="learnings-1.html">Fundamentals</a></td><td>modules, DI, lifecycle, the cross-cutting tools</td></tr>
+    <tr><td>2</td><td><a href="learnings-2.html">Database</a></td><td>TypeORM + Postgres, repositories, migrations</td></tr>
+    <tr><td>3</td><td><a href="learnings-3.html">Auth</a></td><td>Passport + JWT, roles guard, bcrypt</td></tr>
+    <tr><td>4</td><td><a href="learnings-4.html">Config</a></td><td>Joi env validation, fail-fast boot</td></tr>
+    <tr><td>5</td><td><a href="learnings-5.html">API Docs</a></td><td>Swagger / OpenAPI from your DTOs</td></tr>
+    <tr><td>6</td><td><a href="learnings-6.html">Async &amp; Scale</a></td><td>cron, caching, Bull + Redis queue</td></tr>
+    <tr><td>7</td><td>Lifecycle</td><td>startup + graceful-shutdown hooks</td></tr>
+  </table>
+  <p>Natural next steps from here: refresh tokens, per-user task ownership, a real worker process for the queue,
+  rate limiting (<code>@nestjs/throttler</code>), observability (metrics/tracing), and a CI pipeline.</p>
+
+  <hr/>
+  <footer>Part 7 of 7 · NestJS 11 · lifecycle verified via SIGTERM · companion to <span class="file">LEARN.md</span>.</footer>
+</div>
+</body>
+</html>
