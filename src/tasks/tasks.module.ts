@@ -1,18 +1,28 @@
+import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
+import { RemindersProcessor } from './reminders.processor';
+import { RemindersService } from './reminders.service';
 import { TasksController } from './tasks.controller';
+import { TasksScheduler } from './tasks.scheduler';
 import { TasksService } from './tasks.service';
+import { TasksStatsService } from './tasks-stats.service';
 
-// A module groups a feature's pieces. `controllers` are instantiated by Nest;
-// `providers` are added to this module's DI scope. To let OTHER modules use
-// TasksService, you'd add `exports: [TasksService]`.
-//
-// TypeOrmModule.forFeature([Task]) registers a Repository<Task> provider in this
-// module's scope, so TasksService can inject it with @InjectRepository(Task).
+// TypeOrmModule.forFeature([Task]) registers a Repository<Task>; BullModule
+// .registerQueue makes the 'reminders' queue injectable here via @InjectQueue.
 @Module({
-  imports: [TypeOrmModule.forFeature([Task])],
+  imports: [
+    TypeOrmModule.forFeature([Task]),
+    BullModule.registerQueue({ name: 'reminders' }),
+  ],
   controllers: [TasksController],
-  providers: [TasksService],
+  providers: [
+    TasksService,
+    TasksStatsService, // cached stats
+    TasksScheduler, // @Cron heartbeat
+    RemindersService, // enqueues jobs
+    RemindersProcessor, // consumes jobs
+  ],
 })
 export class TasksModule {}

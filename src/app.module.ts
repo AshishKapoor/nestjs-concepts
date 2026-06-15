@@ -1,6 +1,9 @@
+import { BullModule } from '@nestjs/bull';
+import { CacheModule } from '@nestjs/cache-manager';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -28,6 +31,20 @@ import { TasksModule } from './tasks/tasks.module';
     // the exact options the migration CLI uses (see src/database/data-source.ts)
     // so the running app and the schema migrations can never disagree.
     TypeOrmModule.forRoot(dataSourceOptions),
+    // Enables @Cron/@Interval scheduling app-wide.
+    ScheduleModule.forRoot(),
+    // Global in-memory cache (CACHE_MANAGER injectable everywhere).
+    CacheModule.register({ isGlobal: true }),
+    // The Bull root connection to Redis (queues are registered per-feature).
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        redis: {
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
+        },
+      }),
+    }),
     AuthModule,
     TasksModule,
   ],
