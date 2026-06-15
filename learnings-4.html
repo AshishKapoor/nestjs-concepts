@@ -58,10 +58,10 @@
       <a href="learnings-6.html">6 · Async &amp; Scale</a>
       <a href="learnings-7.html">7 · Lifecycle</a>
     </div>
-    <p class="sub">A Joi schema wired into <code>ConfigModule</code> so the app refuses to boot when a required env var
+    <p class="sub">A zod schema wired into <code>ConfigModule</code> so the app refuses to boot when a required env var
     is missing or malformed — turning a 2am production mystery into a one-line startup error.</p>
     <div class="stat-row">
-      <div class="stat"><b>12</b><span>vars validated</span></div>
+      <div class="stat"><b>14</b><span>vars validated</span></div>
       <div class="stat"><b>fail-fast</b><span>on bad config</span></div>
       <div class="stat"><b>5</b><span>schema unit tests</span></div>
     </div>
@@ -89,45 +89,61 @@
   the DTOs from Part 1 — just applied to config instead of request bodies.</p>
 
   <h2 id="schema"><span class="num">02</span>The schema</h2>
-  <p class="lead"><span class="file">src/config/env.validation.ts</span> — Joi, the schema <code>@nestjs/config</code> understands natively.</p>
-<pre><code><span class="kw">export const</span> envValidationSchema = Joi.<span class="fn">object</span>&lt;<span class="ty">EnvVars</span>&gt;({
-  NODE_ENV: Joi.<span class="fn">string</span>().<span class="fn">valid</span>(<span class="str">'development'</span>,<span class="str">'test'</span>,<span class="str">'production'</span>).<span class="fn">default</span>(<span class="str">'development'</span>),
-  PORT: Joi.<span class="fn">number</span>().<span class="fn">port</span>().<span class="fn">default</span>(<span class="nm">3000</span>),
-  API_KEY: Joi.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>).<span class="fn">required</span>(),
-  DB_HOST: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
-  DB_PORT: Joi.<span class="fn">number</span>().<span class="fn">port</span>().<span class="fn">default</span>(<span class="nm">5432</span>),    <span class="cmt">// "5432" string -> 5432 number</span>
-  DB_USERNAME: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
-  DB_PASSWORD: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
-  DB_NAME: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
-  JWT_SECRET: Joi.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">16</span>).<span class="fn">required</span>(),   <span class="cmt">// short secrets are a real weakness</span>
-  JWT_EXPIRES_IN: Joi.<span class="fn">string</span>().<span class="fn">default</span>(<span class="str">'1h'</span>),
-  ADMIN_EMAIL: Joi.<span class="fn">string</span>().<span class="fn">email</span>().<span class="fn">optional</span>(),
-  ADMIN_PASSWORD: Joi.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">8</span>).<span class="fn">optional</span>(),
-});</code></pre>
-  <p>Notice the schema does double duty: <code>required()</code> guards presence, <code>default()</code> fills sensible
-  fallbacks, and <code>number()</code>/<code>port()</code> <b>coerce</b> the string env values into the right types.</p>
+  <p class="lead"><span class="file">src/config/env.validation.ts</span> — a zod schema. (zod isn't Joi-shaped, so it's wired via a <code>validate</code> function — see next section.)</p>
+<pre><code><span class="kw">export const</span> envSchema = z.<span class="fn">object</span>({
+  NODE_ENV: z.<span class="fn">enum</span>([<span class="str">'development'</span>,<span class="str">'test'</span>,<span class="str">'production'</span>]).<span class="fn">default</span>(<span class="str">'development'</span>),
+  PORT: z.coerce.<span class="fn">number</span>().<span class="fn">int</span>().<span class="fn">positive</span>().<span class="fn">default</span>(<span class="nm">3000</span>),
+  API_KEY: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>),                  <span class="cmt">// required by default in zod</span>
+  DB_HOST: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>),
+  DB_PORT: z.coerce.<span class="fn">number</span>().<span class="fn">int</span>().<span class="fn">positive</span>().<span class="fn">default</span>(<span class="nm">5432</span>), <span class="cmt">// "5432" -> 5432</span>
+  DB_USERNAME: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>),
+  DB_PASSWORD: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>),
+  DB_NAME: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>),
+  JWT_SECRET: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">16</span>),               <span class="cmt">// short secrets are a real weakness</span>
+  JWT_EXPIRES_IN: z.<span class="fn">string</span>().<span class="fn">default</span>(<span class="str">'1h'</span>),
+  ADMIN_EMAIL: z.<span class="fn">email</span>().<span class="fn">optional</span>(),
+  ADMIN_PASSWORD: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">8</span>).<span class="fn">optional</span>(),
+  REDIS_HOST: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>).<span class="fn">default</span>(<span class="str">'localhost'</span>),
+  REDIS_PORT: z.coerce.<span class="fn">number</span>().<span class="fn">int</span>().<span class="fn">positive</span>().<span class="fn">default</span>(<span class="nm">6379</span>),
+});
+
+<span class="kw">export type</span> <span class="ty">EnvVars</span> = z.<span class="fn">infer</span>&lt;<span class="kw">typeof</span> envSchema&gt;;   <span class="cmt">// the type, for free</span></code></pre>
+  <p>The schema does double duty: fields are <b>required by default</b> (no <code>.optional()</code>), <code>.default()</code>
+  fills fallbacks, and <code>z.coerce.number()</code> <b>coerces</b> the string env values into real numbers. Best of all,
+  <code>z.infer</code> derives the <code>EnvVars</code> type from the schema — so the type can never drift from the rules.</p>
 
   <h2 id="wire"><span class="num">03</span>Wiring it into ConfigModule</h2>
-<pre><code>ConfigModule.<span class="fn">forRoot</span>({
-  isGlobal: <span class="kw">true</span>,
-  validationSchema: envValidationSchema,
-  validationOptions: { allowUnknown: <span class="kw">true</span>, abortEarly: <span class="kw">false</span> },
-}),</code></pre>
+  <p><code>validationSchema</code> is the <b>Joi-only</b> option. For zod we pass a <code>validate</code> function instead —
+  it receives the raw env, and whatever it returns becomes the validated config (or it throws to abort the boot):</p>
+<pre><code><span class="cmt">// env.validation.ts</span>
+<span class="kw">export function</span> <span class="fn">validateEnv</span>(config: <span class="ty">Record</span>&lt;string, unknown&gt;): <span class="ty">EnvVars</span> {
+  <span class="kw">const</span> result = envSchema.<span class="fn">safeParse</span>(config);   <span class="cmt">// collects ALL issues, not just the first</span>
+  <span class="kw">if</span> (!result.success) {
+    <span class="kw">const</span> issues = result.error.issues
+      .<span class="fn">map</span>((i) =&gt; <span class="str">`${i.path.join('.')}: ${i.message}`</span>).<span class="fn">join</span>(<span class="str">'; '</span>);
+    <span class="kw">throw new</span> <span class="ty">Error</span>(<span class="str">`Config validation error: ${issues}`</span>);
+  }
+  <span class="kw">return</span> result.data;                            <span class="cmt">// coerced + defaulted</span>
+}
+
+<span class="cmt">// app.module.ts</span>
+ConfigModule.<span class="fn">forRoot</span>({ isGlobal: <span class="kw">true</span>, validate: validateEnv }),</code></pre>
   <div class="card">
     <table>
-      <tr><th>Option</th><th>Why</th></tr>
-      <tr><td><code>allowUnknown: true</code></td><td>The environment is full of vars you don't model (<code>PATH</code>, <code>HOME</code>…). Without this, every one of them would fail validation.</td></tr>
-      <tr><td><code>abortEarly: false</code></td><td>Report <b>every</b> problem at once, so you fix five missing vars in one pass instead of five restarts.</td></tr>
+      <tr><th>Joi version did this with…</th><th>zod equivalent</th></tr>
+      <tr><td><code>validationSchema</code></td><td>a <code>validate</code> function (zod isn't Joi-shaped)</td></tr>
+      <tr><td><code>allowUnknown: true</code> (ignore PATH/HOME…)</td><td>automatic — <code>z.object()</code> drops keys it doesn't model</td></tr>
+      <tr><td><code>abortEarly: false</code> (report all)</td><td><code>safeParse</code> collects every issue by default</td></tr>
     </table>
   </div>
 
   <h2 id="demo"><span class="num">04</span>Fail-fast, demonstrated <span class="pill ok">verified</span></h2>
   <p>Booting with a bad variable now stops the app cold with an exact message:</p>
 <pre><code>$ DB_PORT=notaport node dist/main.js
-ERROR [ExceptionHandler] Error: Config validation error: <span class="str">"DB_PORT" must be a number</span>
+ERROR [ExceptionHandler] Error: Config validation error: <span class="str">DB_PORT: Invalid input: expected number, received NaN</span>
 
 $ JWT_SECRET=tiny node dist/main.js
-ERROR [ExceptionHandler] Error: Config validation error: <span class="str">"JWT_SECRET" length must be at least 16 characters long</span></code></pre>
+ERROR [ExceptionHandler] Error: Config validation error: <span class="str">JWT_SECRET: Too small: expected string to have &gt;=16 characters</span></code></pre>
   <p>With a valid <code>.env</code>, the app boots normally — and the 5 schema unit tests cover defaults, coercion,
   a missing required var, a too-short secret, and the report-all-errors behavior.</p>
 
@@ -136,8 +152,10 @@ ERROR [ExceptionHandler] Error: Config validation error: <span class="str">"JWT_
     <li><b>The migration CLI isn't covered.</b> <span class="file">data-source.ts</span> reads <code>process.env</code>
     directly (it runs outside Nest), so the schema only guards the <i>app</i> boot, not <code>migration:run</code>.
     A fair trade — the app is where bad config does the damage.</li>
-    <li><b>Joi types <code>value</code> as <code>any</code>.</b> Typing the schema with <code>Joi.object&lt;EnvVars&gt;</code>
-    documents intent, but to read fields type-safely you still cast to the <code>EnvVars</code> interface.</li>
+    <li><b>zod gives you the type for free.</b> <code>type EnvVars = z.infer&lt;typeof envSchema&gt;</code> — no separate
+    interface to keep in sync, unlike the cast you'd write with Joi.</li>
+    <li><b>zod v4 nuance:</b> the email check is <code>z.email()</code> (top-level), not the deprecated
+    <code>z.string().email()</code>; and numeric coercion is <code>z.coerce.number()</code>.</li>
     <li><b>Defaults are applied to the validated config</b>, so <code>ConfigService.get('PORT')</code> returns the
     coerced/defaulted value, not the raw string.</li>
   </ul>
@@ -149,7 +167,7 @@ ERROR [ExceptionHandler] Error: Config validation error: <span class="str">"JWT_
   <p style="margin-top:18px;font-size:17px;"><a href="learnings-5.html">Continue to Part 5: API docs with Swagger →</a></p>
 
   <hr/>
-  <footer>Part 4 of 7 · NestJS 11 · @nestjs/config + Joi · fail-fast verified.</footer>
+  <footer>Part 4 of 7 · NestJS 11 · @nestjs/config + zod · fail-fast verified.</footer>
 </div>
 </body>
 </html>

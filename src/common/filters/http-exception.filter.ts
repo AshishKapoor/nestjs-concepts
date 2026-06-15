@@ -23,7 +23,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString(),
       // HttpException's body is either a string or an object with `message`.
-      error: typeof body === 'string' ? body : (body as { message: unknown }).message,
+      error:
+        typeof body === 'string'
+          ? body
+          : (body as { message: unknown }).message,
     });
   }
 }

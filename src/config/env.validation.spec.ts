@@ -1,4 +1,4 @@
-import { EnvVars, envValidationSchema } from './env.validation';
+import { validateEnv } from './env.validation';
 
 // A minimal valid environment used as the baseline for these tests.
 const validEnv = {
@@ -10,46 +10,41 @@ const validEnv = {
   JWT_SECRET: 'dev-super-secret-change-me',
 };
 
-describe('envValidationSchema', () => {
+describe('validateEnv (zod)', () => {
   it('accepts a valid environment and applies defaults', () => {
-    const result = envValidationSchema.validate(validEnv);
-    expect(result.error).toBeUndefined();
-    // Joi types value as `any`; cast to our typed shape for safe assertions.
-    const env = result.value as EnvVars;
+    const env = validateEnv(validEnv);
     expect(env.PORT).toBe(3000);
     expect(env.NODE_ENV).toBe('development');
     expect(env.JWT_EXPIRES_IN).toBe('1h');
+    expect(env.REDIS_PORT).toBe(6379);
   });
 
   it('coerces numeric strings (DB_PORT) to numbers', () => {
-    const result = envValidationSchema.validate({
-      ...validEnv,
-      DB_PORT: '5433',
-    });
-    expect((result.value as EnvVars).DB_PORT).toBe(5433);
+    const env = validateEnv({ ...validEnv, DB_PORT: '5433' });
+    expect(env.DB_PORT).toBe(5433);
   });
 
-  it('rejects a missing required var (JWT_SECRET)', () => {
-    const { JWT_SECRET, ...withoutSecret } = validEnv;
-    void JWT_SECRET;
-    const { error } = envValidationSchema.validate(withoutSecret);
-    expect(error?.message).toMatch(/JWT_SECRET/);
+  it('throws on a missing required var (JWT_SECRET)', () => {
+    const incomplete = { ...validEnv } as Record<string, unknown>;
+    delete incomplete.JWT_SECRET;
+    expect(() => validateEnv(incomplete)).toThrow(/JWT_SECRET/);
   });
 
-  it('rejects a too-short JWT_SECRET', () => {
-    const { error } = envValidationSchema.validate({
-      ...validEnv,
-      JWT_SECRET: 'short',
-    });
-    expect(error).toBeDefined();
-  });
-
-  it('reports ALL errors at once with abortEarly:false', () => {
-    const { error } = envValidationSchema.validate(
-      { JWT_SECRET: 'dev-super-secret-change-me' },
-      { abortEarly: false },
+  it('throws on a too-short JWT_SECRET', () => {
+    expect(() => validateEnv({ ...validEnv, JWT_SECRET: 'short' })).toThrow(
+      /Config validation error/,
     );
+  });
+
+  it('reports multiple errors at once (safeParse collects all)', () => {
+    let message = '';
+    try {
+      validateEnv({ JWT_SECRET: 'dev-super-secret-change-me' });
+    } catch (e) {
+      message = (e as Error).message;
+    }
     // API_KEY, DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME are all missing.
-    expect(error?.details.length).toBeGreaterThanOrEqual(4);
+    expect(message).toMatch(/API_KEY/);
+    expect(message).toMatch(/DB_NAME/);
   });
 });

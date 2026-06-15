@@ -11,9 +11,10 @@ import { map } from 'rxjs/operators';
 // incoming call. next.handle() returns an RxJS Observable of the handler's
 // return value; we map it into a consistent { data: ... } envelope.
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, { data: T }>
-{
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  { data: T }
+> {
   intercept(
     _context: ExecutionContext,
     next: CallHandler<T>,

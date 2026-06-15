@@ -12,21 +12,21 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LifecycleService } from './common/lifecycle/lifecycle.service';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { AuthModule } from './auth/auth.module';
-import { envValidationSchema } from './config/env.validation';
+import { validateEnv } from './config/env.validation';
 import { dataSourceOptions } from './database/data-source';
 import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
     // isGlobal:true => ConfigService is injectable everywhere without re-importing.
-    // It loads variables from `.env` into process.env, then validates them against
-    // our Joi schema — a missing/invalid var fails the boot with a clear message.
+    // It loads variables from `.env`, then runs them through our zod `validate`
+    // function — a missing/invalid var fails the boot with a clear message.
+    // (zod uses `validate`, not `validationSchema`, which is the Joi-only option.)
+    // Unknown OS vars (PATH, HOME, …) are simply ignored: zod's .object() drops
+    // keys it doesn't model rather than rejecting them.
     ConfigModule.forRoot({
       isGlobal: true,
-      validationSchema: envValidationSchema,
-      // allowUnknown: let OS vars (PATH, HOME, …) through. abortEarly:false so a
-      // bad config reports EVERY problem at once, not just the first.
-      validationOptions: { allowUnknown: true, abortEarly: false },
+      validate: validateEnv,
     }),
     // forRoot establishes the ONE database connection for the whole app. We reuse
     // the exact options the migration CLI uses (see src/database/data-source.ts)

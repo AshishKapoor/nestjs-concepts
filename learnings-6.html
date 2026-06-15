@@ -159,7 +159,7 @@ BullModule.<span class="fn">forRootAsync</span>({                 <span class="c
 <span class="cmt">// TasksModule</span>
 BullModule.<span class="fn">registerQueue</span>({ name: <span class="str">'reminders'</span> }),</code></pre>
   <p>Redis is added to <span class="file">docker-compose.yml</span>, and <code>REDIS_HOST</code>/<code>REDIS_PORT</code> are
-  in the Joi schema from Part 4 (with sensible defaults).</p>
+  in the zod schema from Part 4 (with sensible defaults).</p>
 
   <h2 id="verified"><span class="num">06</span>Verified live <span class="pill ok">from the logs</span></h2>
 <pre><code>[TasksStats] stats cache MISS — querying DB        <span class="cmt">← first call hits the DB</span>

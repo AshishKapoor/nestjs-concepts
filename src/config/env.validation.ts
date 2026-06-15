@@ -1,53 +1,54 @@
-import * as Joi from 'joi';
+import { z } from 'zod';
 
-// The validated, typed shape of our environment. Typing the schema with this
-// (Joi.object<EnvVars>) makes validate().value strongly typed instead of `any`.
-export interface EnvVars {
-  NODE_ENV: 'development' | 'test' | 'production';
-  PORT: number;
-  API_KEY: string;
-  DB_HOST: string;
-  DB_PORT: number;
-  DB_USERNAME: string;
-  DB_PASSWORD: string;
-  DB_NAME: string;
-  JWT_SECRET: string;
-  JWT_EXPIRES_IN: string;
-  ADMIN_EMAIL?: string;
-  ADMIN_PASSWORD?: string;
-  REDIS_HOST: string;
-  REDIS_PORT: number;
-}
-
-// A schema for every environment variable the app relies on. ConfigModule runs
-// this at startup, so a missing or malformed var fails the boot LOUDLY with a
-// clear message — instead of the app limping along and blowing up later (e.g. a
-// missing JWT_SECRET only surfacing on the first login). This is "fail fast".
-export const envValidationSchema = Joi.object<EnvVars>({
-  NODE_ENV: Joi.string()
-    .valid('development', 'test', 'production')
+// A zod schema for every environment variable the app relies on. zod isn't
+// Joi-shaped, so it doesn't go in ConfigModule's `validationSchema` — instead we
+// expose a `validate` function (below) that ConfigModule calls at startup. A
+// missing or malformed var fails the boot LOUDLY with a clear message ("fail
+// fast"), instead of the app limping along and blowing up on the first request.
+export const envSchema = z.object({
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
     .default('development'),
-  PORT: Joi.number().port().default(3000),
+  // z.coerce.number() turns the string env value ("3000") into a real number.
+  PORT: z.coerce.number().int().positive().default(3000),
 
   // Shared API key for the Tasks write routes (Part 1's guard).
-  API_KEY: Joi.string().min(1).required(),
+  API_KEY: z.string().min(1),
 
-  // Database (Part 2). DB_PORT is coerced to a number by Joi.
-  DB_HOST: Joi.string().required(),
-  DB_PORT: Joi.number().port().default(5432),
-  DB_USERNAME: Joi.string().required(),
-  DB_PASSWORD: Joi.string().required(),
-  DB_NAME: Joi.string().required(),
+  // Database (Part 2).
+  DB_HOST: z.string().min(1),
+  DB_PORT: z.coerce.number().int().positive().default(5432),
+  DB_USERNAME: z.string().min(1),
+  DB_PASSWORD: z.string().min(1),
+  DB_NAME: z.string().min(1),
 
-  // Auth (Part 3). A short secret is a real weakness, so we require >= 16 chars.
-  JWT_SECRET: Joi.string().min(16).required(),
-  JWT_EXPIRES_IN: Joi.string().default('1h'),
+  // Auth (Part 3). A short secret is a real weakness, so require >= 16 chars.
+  JWT_SECRET: z.string().min(16),
+  JWT_EXPIRES_IN: z.string().default('1h'),
 
   // Dev-only admin seed — optional, but validated if present.
-  ADMIN_EMAIL: Joi.string().email().optional(),
-  ADMIN_PASSWORD: Joi.string().min(8).optional(),
+  ADMIN_EMAIL: z.email().optional(),
+  ADMIN_PASSWORD: z.string().min(8).optional(),
 
   // Redis (Part 6) — backs the Bull queue.
-  REDIS_HOST: Joi.string().default('localhost'),
-  REDIS_PORT: Joi.number().port().default(6379),
+  REDIS_HOST: z.string().min(1).default('localhost'),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
 });
+
+// The validated, typed shape of our environment — inferred straight from the
+// schema, so the type can never drift from the validation rules.
+export type EnvVars = z.infer<typeof envSchema>;
+
+// ConfigModule.forRoot({ validate: validateEnv }) calls this with the raw env.
+// safeParse collects ALL problems (not just the first); we flatten them into one
+// readable line and throw, which aborts bootstrap.
+export function validateEnv(config: Record<string, unknown>): EnvVars {
+  const result = envSchema.safeParse(config);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+      .join('; ');
+    throw new Error(`Config validation error: ${issues}`);
+  }
+  return result.data;
+}
