@@ -12,6 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { User } from '../common/decorators/user.decorator';
 import { TransformInterceptor } from '../common/interceptors/transform.interceptor';
@@ -24,6 +25,8 @@ import { TasksService } from './tasks.service';
 // @Controller('tasks') => every route below is prefixed with /tasks.
 // @UseGuards runs the ApiKeyGuard before every handler (unless @Public()).
 // @UseInterceptors wraps every response from this controller in { data: ... }.
+// @ApiTags groups these routes under "tasks" in the Swagger UI.
+@ApiTags('tasks')
 @UseGuards(ApiKeyGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('tasks')
@@ -45,6 +48,7 @@ export class TasksController {
   }
 
   @Post() // POST /tasks   (requires x-api-key header)
+  @ApiSecurity('api-key') // documents the x-api-key requirement in Swagger
   async create(@Body() dto: CreateTaskDto, @User('name') createdBy: string) {
     // @Body() is validated against CreateTaskDto. @User('name') is our custom
     // param decorator pulling the user the guard attached to the request.
@@ -53,12 +57,14 @@ export class TasksController {
   }
 
   @Patch(':id') // PATCH /tasks/1
+  @ApiSecurity('api-key')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTaskDto) {
     return this.tasksService.update(id, dto);
   }
 
   @Delete(':id') // DELETE /tasks/1
   @HttpCode(204) // override the default 200 -> 204 No Content
+  @ApiSecurity('api-key')
   remove(@Param('id', ParseIntPipe) id: number) {
     // MUST return the promise. The service is async now, so if we don't return
     // (or await) it, the handler resolves immediately with 204 and any rejection

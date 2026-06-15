@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS API Docs: Swagger / OpenAPI</title>
+<style>
+  :root{--bg:#0f1320;--panel:#171c2e;--panel-2:#1d2336;--ink:#e7ebf6;--muted:#9aa6c4;--line:#2a3150;--accent:#6ea8fe;--accent-2:#8b7bff;--green:#45c98a;--amber:#f3c969;--red:#ff6b81;--code-bg:#0b0e18;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;}html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px;}
+  header.hero{background:radial-gradient(1200px 400px at 15% -10%,rgba(110,168,254,.22),transparent 60%),radial-gradient(900px 360px at 95% 0%,rgba(139,123,255,.20),transparent 55%),var(--panel);border-bottom:1px solid var(--line);padding:56px 22px 40px;}
+  .hero-inner{max-width:1080px;margin:0 auto;}
+  .kicker{display:inline-block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--accent);background:rgba(110,168,254,.10);border:1px solid rgba(110,168,254,.30);padding:5px 11px;border-radius:999px;}
+  h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em;}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .sub{color:var(--muted);font-size:18px;max-width:760px;}
+  .series{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 4px;}
+  .series a{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;}
+  .series a:hover{color:var(--ink);} .series a.cur{color:#fff;background:linear-gradient(90deg,rgba(110,168,254,.3),rgba(139,123,255,.3));border-color:rgba(139,123,255,.5);font-weight:700;}
+  .stat-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:120px;} .stat b{display:block;font-size:22px;} .stat span{font-size:12.5px;color:var(--muted);}
+  h2{font-size:26px;margin:54px 0 6px;letter-spacing:-.01em;scroll-margin-top:20px;} h2 .num{color:var(--accent);margin-right:10px;}
+  h3{font-size:18.5px;margin:30px 0 6px;color:#d6deff;} h2 + .lead{color:var(--muted);margin-top:4px;}
+  p{margin:12px 0;} a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
+  code{font-family:var(--mono);font-size:.9em;background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:6px;color:#d9e2ff;}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;margin:14px 0;} pre code{background:none;padding:0;font-size:13.5px;line-height:1.6;color:#cdd6f4;}
+  .cmt{color:#6f7aa3;}.kw{color:#c792ea;}.str{color:#c3e88d;}.fn{color:#82aaff;}.ty{color:#ffcb6b;}.nm{color:#f78c6c;}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:30px;} .toc h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);} .toc ol{margin:0;padding-left:20px;} .toc li{margin:5px 0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 22px 18px;margin:18px 0;}
+  .callout{border-radius:12px;padding:14px 16px 14px 18px;margin:18px 0;border:1px solid var(--line);border-left-width:4px;background:var(--panel-2);} .callout .ct{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;} .callout p{margin:4px 0;}
+  .callout.why{border-left-color:var(--accent);} .callout.why .ct{color:var(--accent);} .callout.warn{border-left-color:var(--amber);} .callout.warn .ct{color:var(--amber);} .callout.ok{border-left-color:var(--green);} .callout.ok .ct{color:var(--green);}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;} th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;} th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;} td code{white-space:nowrap;}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;} .pill.ok{background:rgba(69,201,138,.14);color:var(--green);border:1px solid rgba(69,201,138,.3);}
+  .file{font-family:var(--mono);font-size:12.5px;color:var(--accent-2);background:rgba(139,123,255,.10);border:1px solid rgba(139,123,255,.25);padding:2px 9px;border-radius:6px;}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0;} footer{color:var(--muted);font-size:13.5px;text-align:center;margin-top:60px;} ul.tight li{margin:4px 0;}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 5 · API Documentation</span>
+    <h1>An API that <span class="grad">documents itself</span></h1>
+    <div class="series">
+      <a href="learnings-1.html">1 · Fundamentals</a>
+      <a href="learnings-2.html">2 · Database</a>
+      <a href="learnings-3.html">3 · Auth</a>
+      <a href="learnings-4.html">4 · Config</a>
+      <a class="cur">5 · API Docs</a>
+      <a href="learnings-6.html">6 · Async &amp; Scale</a>
+      <a href="learnings-7.html">7 · Lifecycle</a>
+    </div>
+    <p class="sub"><code>@nestjs/swagger</code> generates a live OpenAPI spec + Swagger UI at <code>/docs</code> — and
+    its CLI plugin reads your existing DTOs and validators, so the schemas write themselves.</p>
+    <div class="stat-row">
+      <div class="stat"><b>/docs</b><span>interactive UI</span></div>
+      <div class="stat"><b>4</b><span>DTO schemas auto-built</span></div>
+      <div class="stat"><b>2</b><span>security schemes</span></div>
+      <div class="stat"><b>0</b><span>@ApiProperty by hand</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#why">Why generated docs</a></li>
+      <li><a href="#plugin">The CLI plugin does the heavy lifting</a></li>
+      <li><a href="#setup">Setup in main.ts</a></li>
+      <li><a href="#security">Documenting auth</a></li>
+      <li><a href="#verified">Verified spec</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#next">Where this leads</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="why"><span class="num">01</span>Why generated docs</h2>
+  <p class="lead">The spec that can't go stale.</p>
+  <p>Hand-written API docs drift from the code the moment someone forgets to update them. Swagger flips that: the docs
+  are <b>derived from the code</b> — routes, params, DTOs, validators — so they're always in sync. The output is
+  <b>OpenAPI</b>, a standard machine-readable contract you can hand to client-codegen tools, Postman, or a frontend team.</p>
+
+  <h2 id="plugin"><span class="num">02</span>The CLI plugin does the heavy lifting</h2>
+  <p class="lead">One line in <span class="file">nest-cli.json</span> and your DTOs become schemas.</p>
+<pre><code>"compilerOptions": {
+  "deleteOutDir": true,
+  "plugins": ["@nestjs/swagger"]   <span class="cmt">// auto-adds @ApiProperty from TS types + validators</span>
+}</code></pre>
+  <p>Without the plugin you'd decorate every DTO field with <code>@ApiProperty()</code> by hand. With it, the compiler
+  inspects each property's TypeScript type and its class-validator decorators and emits the schema for you. That's why
+  <code>CreateTaskDto</code> shows up in the spec with <code>title</code> marked <b>required</b> (from <code>@MinLength</code>)
+  and <code>description</code>/<code>status</code> optional (from <code>@IsOptional</code>) — without touching the DTO.</p>
+
+  <h2 id="setup"><span class="num">03</span>Setup in main.ts</h2>
+<pre><code><span class="kw">const</span> config = <span class="kw">new</span> <span class="ty">DocumentBuilder</span>()
+  .<span class="fn">setTitle</span>(<span class="str">'Tasks API'</span>)
+  .<span class="fn">setDescription</span>(<span class="str">'NestJS getting-started API …'</span>)
+  .<span class="fn">setVersion</span>(<span class="str">'1.0'</span>)
+  .<span class="fn">addBearerAuth</span>({ type:<span class="str">'http'</span>, scheme:<span class="str">'bearer'</span>, bearerFormat:<span class="str">'JWT'</span> }, <span class="str">'jwt'</span>)
+  .<span class="fn">addApiKey</span>({ type:<span class="str">'apiKey'</span>, name:<span class="str">'x-api-key'</span>, in:<span class="str">'header'</span> }, <span class="str">'api-key'</span>)
+  .<span class="fn">build</span>();
+<span class="kw">const</span> document = SwaggerModule.<span class="fn">createDocument</span>(app, config);
+SwaggerModule.<span class="fn">setup</span>(<span class="str">'docs'</span>, app, document);   <span class="cmt">// UI at /docs, raw spec at /docs-json</span></code></pre>
+
+  <h2 id="security"><span class="num">04</span>Documenting auth</h2>
+  <p>The two security schemes registered above are wired to routes with tiny decorators, so the Swagger UI's
+  <b>"Authorize"</b> button knows what each endpoint needs:</p>
+  <div class="card">
+    <table>
+      <tr><th>Decorator</th><th>On</th><th>Effect</th></tr>
+      <tr><td><code>@ApiTags('tasks')</code></td><td>controllers</td><td>groups endpoints in the UI</td></tr>
+      <tr><td><code>@ApiBearerAuth('jwt')</code></td><td>/auth/me, /auth/admin</td><td>marks them as needing a JWT</td></tr>
+      <tr><td><code>@ApiSecurity('api-key')</code></td><td>POST/PATCH/DELETE /tasks</td><td>marks them as needing <code>x-api-key</code></td></tr>
+    </table>
+  </div>
+
+  <h2 id="verified"><span class="num">05</span>Verified spec <span class="pill ok">live</span></h2>
+  <p>Fetching <code>/docs-json</code> from the running app confirms the generated contract:</p>
+<pre><code>title: Tasks API 1.0
+paths: [/, /auth/admin, /auth/login, /auth/me, /auth/register, /tasks, /tasks/{id}]
+securitySchemes: [api-key, jwt]
+schemas: [CreateTaskDto, UpdateTaskDto, RegisterDto, LoginDto]
+CreateTaskDto props: [title, description, status]  required: [title]
+/auth/me   security: [{ jwt: [] }]
+POST /tasks security: [{ api-key: [] }]</code></pre>
+  <p>And <code>GET /docs</code> serves the interactive Swagger UI (HTTP 200).</p>
+
+  <h2 id="gotchas"><span class="num">06</span>Gotchas</h2>
+  <ul class="tight">
+    <li><b>The plugin only runs through the Nest compiler</b> (<code>nest build</code>/<code>nest start</code>). Tests
+    run via ts-jest and don't get the auto-<code>@ApiProperty</code> — fine, since tests don't assert on the spec.</li>
+    <li><b>Response shapes aren't inferred</b> when handlers return loosely-typed values. For precise response docs,
+    add <code>@ApiOkResponse({ type: ... })</code> — left out here to keep the diff small.</li>
+    <li><b>Swagger reflects your <i>declared</i> security</b>, not your <i>actual</i> guards. The decorators and the
+    <code>@UseGuards</code> must agree by hand — Swagger won't catch a mismatch.</li>
+    <li><b>Don't expose <code>/docs</code> unauthenticated in production</b> unless you intend the API surface to be public.</li>
+  </ul>
+
+  <h2 id="next"><span class="num">07</span>Where this leads</h2>
+  <p>The API now describes itself, validates its inputs, persists to a database, and authenticates users. <b>Part 6</b>
+  adds the scale primitives: scheduled jobs (<code>@nestjs/schedule</code>), response caching, and a background job
+  queue backed by Redis (<code>@nestjs/bull</code>).</p>
+  <p style="margin-top:18px;font-size:17px;"><a href="learnings-6.html">Continue to Part 6: Async &amp; scale →</a></p>
+
+  <hr/>
+  <footer>Part 5 of 7 · NestJS 11 · @nestjs/swagger · spec verified at /docs-json.</footer>
+</div>
+</body>
+</html>

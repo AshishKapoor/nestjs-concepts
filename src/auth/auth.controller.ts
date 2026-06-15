@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 // `type` on JwtUser: it's used as a decorated param type, and with
 // isolatedModules + emitDecoratorMetadata a pure type must be imported as such.
@@ -11,6 +12,7 @@ import { UserRole } from './entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
@@ -31,6 +33,7 @@ export class AuthController {
 
   // Protected: requires a valid Bearer token. @CurrentUser() reads what
   // JwtStrategy.validate() returned.
+  @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard)
   @Get('me') // GET /auth/me  (Authorization: Bearer <token>)
   me(@CurrentUser() user: JwtUser) {
@@ -39,6 +42,7 @@ export class AuthController {
 
   // Protected AND restricted: both guards run — JwtAuthGuard authenticates,
   // RolesGuard authorizes. A USER-role token gets 403 here; an ADMIN passes.
+  @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get('admin') // GET /auth/admin
