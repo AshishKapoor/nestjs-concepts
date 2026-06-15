@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS Fundamentals: The Tasks API</title>
+<style>
+  :root {
+    --bg: #0f1320;
+    --panel: #171c2e;
+    --panel-2: #1d2336;
+    --ink: #e7ebf6;
+    --muted: #9aa6c4;
+    --line: #2a3150;
+    --accent: #6ea8fe;
+    --accent-2: #8b7bff;
+    --green: #45c98a;
+    --amber: #f3c969;
+    --red: #ff6b81;
+    --code-bg: #0b0e18;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.65; font-size: 16px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px 120px; }
+  header.hero {
+    background:
+      radial-gradient(1200px 400px at 15% -10%, rgba(110,168,254,.22), transparent 60%),
+      radial-gradient(900px 360px at 95% 0%, rgba(139,123,255,.20), transparent 55%),
+      var(--panel);
+    border-bottom: 1px solid var(--line); padding: 64px 22px 46px;
+  }
+  .hero-inner { max-width: 1080px; margin: 0 auto; }
+  .kicker {
+    display: inline-block; letter-spacing: .14em; text-transform: uppercase;
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    background: rgba(110,168,254,.10); border: 1px solid rgba(110,168,254,.30);
+    padding: 5px 11px; border-radius: 999px;
+  }
+  h1 { font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; margin: 18px 0 10px; letter-spacing: -.02em; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-size: 18px; max-width: 760px; }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+  .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; min-width: 130px; }
+  .stat b { display: block; font-size: 22px; color: var(--ink); }
+  .stat span { font-size: 12.5px; color: var(--muted); }
+
+  h2 { font-size: 26px; margin: 56px 0 6px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; opacity: .9; }
+  h3 { font-size: 18.5px; margin: 30px 0 6px; color: #d6deff; }
+  h2 + .lead { color: var(--muted); margin-top: 4px; }
+  p { margin: 12px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .9em; background: rgba(255,255,255,.06); padding: 1.5px 6px; border-radius: 6px; color: #d9e2ff; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; overflow:auto; margin: 14px 0; }
+  pre code { background: none; padding: 0; font-size: 13.5px; line-height: 1.6; color: #cdd6f4; }
+  .cmt { color: #6f7aa3; } .kw { color: #c792ea; } .str { color: #c3e88d; } .fn { color: #82aaff; } .ty { color: #ffcb6b; } .nm { color: #f78c6c; }
+
+  .toc { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-top: 34px; }
+  .toc h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+  .toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 34px; }
+  .toc li { margin: 5px 0; }
+  @media (max-width: 680px){ .toc ol { columns: 1; } }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 4px 22px 18px; margin: 18px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px){ .grid, .grid-3 { grid-template-columns: 1fr; } }
+
+  .callout { border-radius: 12px; padding: 14px 16px 14px 18px; margin: 18px 0; border: 1px solid var(--line); border-left-width: 4px; background: var(--panel-2); }
+  .callout .ct { font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+  .callout p { margin: 4px 0; }
+  .callout.why { border-left-color: var(--accent); } .callout.why .ct { color: var(--accent); }
+  .callout.warn { border-left-color: var(--amber); } .callout.warn .ct { color: var(--amber); }
+  .callout.bug { border-left-color: var(--red); } .callout.bug .ct { color: var(--red); }
+  .callout.ok { border-left-color: var(--green); } .callout.ok .ct { color: var(--green); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; }
+  td code { white-space: nowrap; }
+
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; margin: 18px 0; }
+  .step { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font-size: 13.5px; flex: 1 1 0; min-width: 110px; }
+  .step b { display:block; color: #cfd8ff; font-size: 13px; }
+  .step span { color: var(--muted); font-size: 12px; }
+  .step.throw { border-color: rgba(255,107,129,.4); }
+  .arrow { align-self:center; color: var(--accent); padding: 0 8px; font-weight: 700; }
+  @media (max-width: 760px){ .arrow { transform: rotate(90deg); padding: 6px 0; } .flow { flex-direction: column; } }
+
+  .pill { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle; }
+  .pill.info { background: rgba(110,168,254,.14); color:#9cc0ff; border:1px solid rgba(110,168,254,.3); }
+  .pill.scope { background: rgba(139,123,255,.14); color:#bcb0ff; border:1px solid rgba(139,123,255,.3); }
+
+  .file { font-family: var(--mono); font-size: 12.5px; color: var(--accent-2); background: rgba(139,123,255,.10); border:1px solid rgba(139,123,255,.25); padding: 2px 9px; border-radius: 6px; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+  footer { color: var(--muted); font-size: 13.5px; text-align:center; margin-top: 60px; }
+  .badge-list { display:flex; flex-wrap:wrap; gap:8px; margin: 12px 0; }
+  .badge { font-size: 12.5px; background: var(--panel-2); border:1px solid var(--line); border-radius: 8px; padding: 5px 10px; color: var(--muted); }
+  .badge b { color: var(--ink); }
+  ul.tight li { margin: 4px 0; }
+  .tree { font-family: var(--mono); font-size: 13px; color: #cdd6f4; background: var(--code-bg); border:1px solid var(--line); border-radius:12px; padding:16px 18px; overflow:auto; }
+  .tree .c { color:#6f7aa3; } .tree .d { color:#82aaff; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 1 · NestJS fundamentals</span>
+    <h1>The Tasks API, <span class="grad">before the database</span></h1>
+    <p style="margin:10px 0 0 0;font-size:14px;"><a href="learnings-2.html">Part 2: From an in-memory array to a real database →</a></p>
+    <p class="sub">How this project's REST API is wired with NestJS' core ideas — modules &amp; dependency injection,
+    the ordered request lifecycle, and the cross-cutting tools (guards, interceptors, pipes, filters, middleware,
+    custom decorators) — all illustrated with the project's own code.</p>
+    <div class="stat-row">
+      <div class="stat"><b>3</b><span>building blocks</span></div>
+      <div class="stat"><b>7</b><span>lifecycle stages</span></div>
+      <div class="stat"><b>6</b><span>cross-cutting tools</span></div>
+      <div class="stat"><b>3</b><span>DTOs + validation</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#model">The mental model</a></li>
+      <li><a href="#blocks">The 3 building blocks</a></li>
+      <li><a href="#di">Dependency injection</a></li>
+      <li><a href="#lifecycle">The request lifecycle</a></li>
+      <li><a href="#tools">The cross-cutting tools</a></li>
+      <li><a href="#dto">DTOs &amp; validation</a></li>
+      <li><a href="#wiring">Wiring it together</a></li>
+      <li><a href="#map">The worked example, mapped</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#cli">The Nest CLI</a></li>
+      <li><a href="#gotchas">Mental models &amp; gotchas</a></li>
+      <li><a href="#next">Where this leads</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============================================================ -->
+  <h2 id="model"><span class="num">01</span>The mental model</h2>
+  <p class="lead">You describe <i>what</i> with decorators; Nest wires the <i>how</i>.</p>
+
+  <p>NestJS is an opinionated Node framework with an Angular-style architecture (modules, dependency injection,
+  decorators) sitting on top of Express. It's TypeScript-first. The core trade you're making: instead of manually
+  constructing and passing objects around, you <b>declare</b> your pieces with decorators and let Nest's container
+  assemble the whole graph for you.</p>
+
+  <div class="callout why">
+    <div class="ct">The one sentence to remember</div>
+    <p>A <b>Module</b> groups a feature and defines its DI scope; a <b>Controller</b> maps HTTP routes to methods and
+    stays thin; a <b>Provider/Service</b> holds the logic and is injected, never <code>new</code>-ed. Everything else
+    is a cross-cutting tool that hooks into the request as it flows through.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="blocks"><span class="num">02</span>The 3 building blocks</h2>
+  <p class="lead">95% of what you write is one of these three.</p>
+
+  <table>
+    <tr><th>Block</th><th>Decorator</th><th>Job</th></tr>
+    <tr><td><b>Module</b></td><td><code>@Module()</code></td><td>Groups a feature; defines its DI scope. Root is <code>AppModule</code>.</td></tr>
+    <tr><td><b>Controller</b></td><td><code>@Controller('x')</code></td><td>Maps HTTP routes → methods. Stays thin — delegates to services.</td></tr>
+    <tr><td><b>Provider / Service</b></td><td><code>@Injectable()</code></td><td>Business logic. Injected, never instantiated by hand. <code>exports</code> to share.</td></tr>
+  </table>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>Module</h3>
+<pre><code><span class="fn">@Module</span>({
+  controllers: [TasksController],
+  providers: [TasksService],
+  <span class="cmt">// exports: [TasksService]</span>
+})
+<span class="kw">export class</span> <span class="ty">TasksModule</span> {}</code></pre>
+    </div>
+    <div class="card">
+      <h3>Controller</h3>
+<pre><code><span class="fn">@Controller</span>(<span class="str">'tasks'</span>)
+<span class="kw">export class</span> <span class="ty">TasksController</span> {
+  <span class="fn">@Get</span>()
+  findAll(<span class="fn">@Query</span>() q) {
+    <span class="kw">return this</span>.svc.<span class="fn">findAll</span>(q);
+  }
+}</code></pre>
+    </div>
+    <div class="card">
+      <h3>Service</h3>
+<pre><code><span class="fn">@Injectable</span>()
+<span class="kw">export class</span> <span class="ty">TasksService</span> {
+  findAll(q) {
+    <span class="cmt">/* logic here */</span>
+  }
+}</code></pre>
+    </div>
+  </div>
+  <p>A provider is only injectable where it's <b>in scope</b>: listed in the <code>providers</code> of an imported
+  module, or <code>exports</code>-ed by one.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="di"><span class="num">03</span>Dependency injection — the heart of Nest</h2>
+  <p class="lead">Declare a dependency in a constructor; Nest builds it once and hands it to you.</p>
+
+  <p>You never write <code>new TasksService()</code>. You ask for it in the constructor and the container provides a
+  single shared instance (default scope = singleton). This keeps controllers thin and makes everything trivially
+  testable — you can swap any dependency for a fake (see <a href="#testing">Testing</a>).</p>
+
+<pre><code><span class="fn">@Controller</span>(<span class="str">'tasks'</span>)
+<span class="kw">export class</span> <span class="ty">TasksController</span> {
+  <span class="cmt">// injected automatically — the DI container resolves it</span>
+  <span class="kw">constructor</span>(<span class="kw">private readonly</span> tasksService: <span class="ty">TasksService</span>) {}
+}</code></pre>
+
+  <p>You can see real DI in this project's guard, which asks for two framework providers at once:</p>
+<pre><code><span class="cmt">// src/common/guards/api-key.guard.ts</span>
+<span class="kw">constructor</span>(
+  <span class="kw">private readonly</span> reflector: <span class="ty">Reflector</span>,      <span class="cmt">// reads route metadata</span>
+  <span class="kw">private readonly</span> config: <span class="ty">ConfigService</span>,     <span class="cmt">// reads env vars</span>
+) {}</code></pre>
+
+  <!-- ============================================================ -->
+  <h2 id="lifecycle"><span class="num">04</span>The request lifecycle <span class="pill info">order matters</span></h2>
+  <p class="lead">Every request flows through the same ordered pipeline. Memorize this.</p>
+
+  <div class="flow">
+    <div class="step"><b>Middleware</b><span>Express-style; logging, request-id</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Guards</b><span>can it proceed? auth → 401/403</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Interceptor (pre)</b><span>wrap call; start timer</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Pipes</b><span>validate + transform → 400</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Handler</b><span>your controller → service</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Interceptor (post)</b><span>reshape response, e.g. {data}</span></div>
+    <div class="arrow">→</div>
+    <div class="step throw"><b>Exception filter</b><span>only if something threw</span></div>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct">The consequence that bites people</div>
+    <p>If a <b>guard or pipe throws</b>, the handler and the post-interceptors <b>never run</b> — Nest jumps straight to
+    the exception filter. That's exactly how a failed API key (401) or invalid body (400) short-circuits before any
+    business logic executes. (Part 2 shows the flip side: a handler that returns too early can let an async error
+    escape the pipeline entirely.)</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="tools"><span class="num">05</span>The cross-cutting tools</h2>
+  <p class="lead">The other 5% — each hooks into a specific point of that pipeline. All six exist in this project.</p>
+
+  <table>
+    <tr><th>Tool</th><th>Interface</th><th>In this project</th></tr>
+    <tr><td><b>Middleware</b></td><td><code>NestMiddleware</code></td><td><span class="file">LoggerMiddleware</span> — logs every incoming request</td></tr>
+    <tr><td><b>Guard</b></td><td><code>CanActivate</code></td><td><span class="file">ApiKeyGuard</span> — checks <code>x-api-key</code></td></tr>
+    <tr><td><b>Interceptor</b></td><td><code>NestInterceptor</code></td><td><span class="file">LoggingInterceptor</span> (timing) + <span class="file">TransformInterceptor</span> (envelope)</td></tr>
+    <tr><td><b>Pipe</b></td><td><code>PipeTransform</code></td><td><code>ValidationPipe</code> (global) + <code>ParseIntPipe</code></td></tr>
+    <tr><td><b>Exception filter</b></td><td><code>ExceptionFilter</code></td><td><span class="file">HttpExceptionFilter</span> — shapes error JSON</td></tr>
+    <tr><td><b>Custom decorators</b></td><td><code>createParamDecorator</code> / <code>SetMetadata</code></td><td><span class="file">@User()</span> + <span class="file">@Public()</span></td></tr>
+  </table>
+
+  <h3>Middleware — runs first, knows nothing about the handler</h3>
+<pre><code><span class="fn">@Injectable</span>()
+<span class="kw">export class</span> <span class="ty">LoggerMiddleware</span> <span class="kw">implements</span> <span class="ty">NestMiddleware</span> {
+  <span class="kw">private readonly</span> logger = <span class="kw">new</span> <span class="ty">Logger</span>(<span class="str">'Request'</span>);
+  use(req, _res, next) {
+    <span class="kw">this</span>.logger.<span class="fn">log</span>(<span class="str">`-> ${req.method} ${req.originalUrl}`</span>);
+    next();                       <span class="cmt">// MUST call next() to continue</span>
+  }
+}</code></pre>
+
+  <h3>Guard — "can this proceed?" + the custom decorators it reads</h3>
+  <p>The guard reads <code>@Public()</code> metadata via the <code>Reflector</code> to decide whether to skip auth, and on
+  success attaches a fake <code>user</code> to the request for downstream <code>@User()</code> to read.</p>
+<pre><code><span class="cmt">// api-key.guard.ts</span>
+canActivate(context: <span class="ty">ExecutionContext</span>): <span class="ty">boolean</span> {
+  <span class="kw">const</span> isPublic = <span class="kw">this</span>.reflector.<span class="fn">getAllAndOverride</span>(IS_PUBLIC_KEY, [
+    context.<span class="fn">getHandler</span>(), context.<span class="fn">getClass</span>(),   <span class="cmt">// method, then controller</span>
+  ]);
+  <span class="kw">if</span> (isPublic) <span class="kw">return true</span>;                <span class="cmt">// @Public() routes skip auth</span>
+
+  <span class="kw">const</span> apiKey = request.<span class="fn">header</span>(<span class="str">'x-api-key'</span>);
+  <span class="kw">if</span> (apiKey !== expected)
+    <span class="kw">throw new</span> <span class="ty">UnauthorizedException</span>(<span class="str">'Invalid or missing x-api-key header'</span>);
+
+  request.user = { name: <span class="str">'Ashish Kapoor'</span> };   <span class="cmt">// for @User() downstream</span>
+  <span class="kw">return true</span>;
+}</code></pre>
+<pre><code><span class="cmt">// public.decorator.ts — SetMetadata factory</span>
+<span class="kw">export const</span> IS_PUBLIC_KEY = <span class="str">'isPublic'</span>;
+<span class="kw">export const</span> <span class="fn">Public</span> = () =&gt; <span class="fn">SetMetadata</span>(IS_PUBLIC_KEY, <span class="kw">true</span>);
+
+<span class="cmt">// user.decorator.ts — createParamDecorator, pulls req.user (or one field)</span>
+<span class="kw">export const</span> <span class="fn">User</span> = <span class="fn">createParamDecorator</span>(
+  (data, ctx) =&gt; {
+    <span class="kw">const</span> user = ctx.<span class="fn">switchToHttp</span>().<span class="fn">getRequest</span>().user;
+    <span class="kw">return</span> data ? user?.[data] : user;   <span class="cmt">// @User('name') vs @User()</span>
+  },
+);</code></pre>
+
+  <h3>Interceptors — wrap the handler with RxJS</h3>
+  <p><code>next.handle()</code> returns an Observable of the handler's return value. <code>tap()</code> runs a side effect
+  without changing it (timing); <code>map()</code> transforms it (the response envelope).</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Timing (global)</h3>
+<pre><code><span class="kw">const</span> start = Date.<span class="fn">now</span>();
+<span class="kw">return</span> next.<span class="fn">handle</span>().<span class="fn">pipe</span>(
+  <span class="fn">tap</span>(() =&gt; <span class="kw">this</span>.logger.<span class="fn">log</span>(
+    <span class="str">`${method} ${url} +${Date.now()-start}ms`</span>)),
+);</code></pre>
+    </div>
+    <div class="card">
+      <h3>Envelope (on TasksController)</h3>
+<pre><code><span class="kw">return</span> next.<span class="fn">handle</span>().<span class="fn">pipe</span>(
+  <span class="fn">map</span>((data) =&gt; ({ data })),
+);
+<span class="cmt">// every response → { data: ... }</span></code></pre>
+    </div>
+  </div>
+
+  <h3>Pipes — validate &amp; transform input</h3>
+  <p>Two flavors here: the global <code>ValidationPipe</code> (validates every <code>@Body()</code>/<code>@Query()</code> against
+  its DTO — see next section) and the built-in <code>ParseIntPipe</code> on a route param:</p>
+<pre><code><span class="fn">@Get</span>(<span class="str">':id'</span>)
+findOne(<span class="fn">@Param</span>(<span class="str">'id'</span>, <span class="ty">ParseIntPipe</span>) id: <span class="ty">number</span>) {
+  <span class="cmt">// "1" -> 1, and 400s automatically on non-numeric input</span>
+  <span class="kw">return this</span>.tasksService.<span class="fn">findOne</span>(id);
+}</code></pre>
+
+  <h3>Exception filter — shape the error response</h3>
+  <p><code>@Catch(HttpException)</code> limits this filter to HTTP exceptions (and subclasses like
+  <code>NotFoundException</code>). It turns any thrown <code>HttpException</code> into a consistent JSON body:</p>
+<pre><code><span class="fn">@Catch</span>(<span class="ty">HttpException</span>)
+<span class="kw">export class</span> <span class="ty">HttpExceptionFilter</span> <span class="kw">implements</span> <span class="ty">ExceptionFilter</span> {
+  catch(exception, host) {
+    <span class="kw">const</span> status = exception.<span class="fn">getStatus</span>();
+    response.<span class="fn">status</span>(status).<span class="fn">json</span>({
+      statusCode: status,
+      path: request.url,
+      timestamp: <span class="kw">new</span> <span class="ty">Date</span>().<span class="fn">toISOString</span>(),
+      error: <span class="cmt">/* string or .message */</span>,
+    });
+  }
+}</code></pre>
+  <p>This is why a 404 in this API comes back as <code>{ "statusCode": 404, "path": "/tasks/1", "timestamp": …,
+  "error": "Task with id 1 not found" }</code> rather than Nest's default shape.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="dto"><span class="num">06</span>DTOs &amp; validation — how you trust input</h2>
+  <p class="lead">A DTO is the declared shape of an incoming request; class-validator decorators enforce it.</p>
+
+  <p>The global <code>ValidationPipe</code> reads these decorators at runtime. If validation fails, Nest auto-responds
+  <b>400 before your controller runs</b>. Three DTOs show the patterns:</p>
+
+<pre><code><span class="cmt">// create-task.dto.ts — the base shape</span>
+<span class="kw">export class</span> <span class="ty">CreateTaskDto</span> {
+  <span class="fn">@IsString</span>() <span class="fn">@MinLength</span>(<span class="nm">3</span>)        title: <span class="ty">string</span>;
+  <span class="fn">@IsString</span>() <span class="fn">@IsOptional</span>()        description?: <span class="ty">string</span>;
+  <span class="fn">@IsEnum</span>(TaskStatus) <span class="fn">@IsOptional</span>() status?: <span class="ty">TaskStatus</span>;
+}
+
+<span class="cmt">// update-task.dto.ts — DRY: same rules, all optional</span>
+<span class="kw">export class</span> <span class="ty">UpdateTaskDto</span> <span class="kw">extends</span> <span class="fn">PartialType</span>(CreateTaskDto) {}
+
+<span class="cmt">// query-tasks.dto.ts — query strings arrive as strings...</span>
+<span class="kw">export class</span> <span class="ty">QueryTasksDto</span> {
+  <span class="fn">@IsOptional</span>() <span class="fn">@IsEnum</span>(TaskStatus) status?: <span class="ty">TaskStatus</span>;
+  <span class="fn">@IsOptional</span>() <span class="fn">@IsString</span>()         search?: <span class="ty">string</span>;
+  <span class="fn">@IsOptional</span>() <span class="fn">@Type</span>(() =&gt; <span class="ty">Number</span>) <span class="fn">@IsInt</span>() <span class="fn">@Min</span>(<span class="nm">1</span>) page = <span class="nm">1</span>;
+  <span class="fn">@IsOptional</span>() <span class="fn">@Type</span>(() =&gt; <span class="ty">Number</span>) <span class="fn">@IsInt</span>() <span class="fn">@Min</span>(<span class="nm">1</span>) <span class="fn">@Max</span>(<span class="nm">100</span>) limit = <span class="nm">10</span>;
+}</code></pre>
+
+  <div class="badge-list">
+    <span class="badge"><b>PartialType</b> derives an all-optional DTO that keeps the same validation rules — no copy-paste.</span>
+    <span class="badge"><b>@Type(() =&gt; Number)</b> + <code>transform:true</code> coerces <code>"?page=2"</code> to a real number before <code>@IsInt</code> runs.</span>
+  </div>
+
+  <p>The pipe is configured once, globally, in <span class="file">main.ts</span>:</p>
+<pre><code>app.<span class="fn">useGlobalPipes</span>(<span class="kw">new</span> <span class="ty">ValidationPipe</span>({
+  whitelist: <span class="kw">true</span>,             <span class="cmt">// strip props with no decorator</span>
+  forbidNonWhitelisted: <span class="kw">true</span>,  <span class="cmt">// 400 if client sends unknown props</span>
+  transform: <span class="kw">true</span>,             <span class="cmt">// turn JSON into DTO instances + coerce types</span>
+}));</code></pre>
+
+  <!-- ============================================================ -->
+  <h2 id="wiring"><span class="num">07</span>Wiring it together</h2>
+  <p class="lead">Where each tool is attached — and the scope ladder that governs it.</p>
+
+  <p>Scope goes <b>method → controller → global</b>. You can apply a tool with a decorator on a single handler, on a whole
+  controller, or app-wide. For globals there are two routes: imperatively in <code>main.ts</code>
+  (<code>app.useGlobalX()</code>), or via the <code>APP_*</code> provider tokens — which is preferred when the tool needs
+  <b>dependency injection</b>.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Globals via DI tokens — <span class="file">app.module.ts</span></h3>
+<pre><code>providers: [
+  AppService,
+  { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+  { provide: APP_FILTER,      useClass: HttpExceptionFilter },
+],
+<span class="cmt">// ConfigModule.forRoot({ isGlobal: true }) loads .env</span>
+<span class="cmt">// middleware can't use a decorator — wired in configure():</span>
+<span class="fn">configure</span>(consumer) {
+  consumer.<span class="fn">apply</span>(LoggerMiddleware).<span class="fn">forRoutes</span>(<span class="str">'*'</span>);
+}</code></pre>
+    </div>
+    <div class="card">
+      <h3>Controller-scoped — <span class="file">tasks.controller.ts</span></h3>
+<pre><code><span class="fn">@UseGuards</span>(ApiKeyGuard)            <span class="cmt">// auth for this controller</span>
+<span class="fn">@UseInterceptors</span>(TransformInterceptor) <span class="cmt">// {data} envelope</span>
+<span class="fn">@Controller</span>(<span class="str">'tasks'</span>)
+<span class="kw">export class</span> <span class="ty">TasksController</span> {
+
+  <span class="fn">@Get</span>() <span class="fn">@Public</span>()              <span class="cmt">// method-scoped: skip the guard</span>
+  findAll(<span class="fn">@Query</span>() q) { ... }
+
+  <span class="fn">@Post</span>()
+  create(<span class="fn">@Body</span>() dto, <span class="fn">@User</span>(<span class="str">'name'</span>) by) { ... }
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="callout why">
+    <div class="ct">Why <code>APP_FILTER</code>/<code>APP_INTERCEPTOR</code> instead of <code>main.ts</code></div>
+    <p>Registering a global through these tokens lets it participate in DI — so the guard can inject
+    <code>ConfigService</code>, the filter could inject a logger, etc. The plain <code>app.useGlobalX()</code> form can't
+    inject providers. That's the whole reason both styles exist.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="map"><span class="num">08</span>The worked example, mapped</h2>
+  <p class="lead">A full Tasks REST API. Here's where everything lives.</p>
+
+<div class="tree"><span class="c"># src/</span>
+<span class="d">main.ts</span>                      <span class="c"># bootstrap + global ValidationPipe</span>
+<span class="d">app.module.ts</span>                 <span class="c"># root: APP_* globals, ConfigModule, middleware wiring</span>
+<span class="d">app.controller.ts</span> / .service   <span class="c"># the "Hello World!" root route</span>
+<span class="d">tasks/</span>
+  tasks.module.ts             <span class="c"># groups the feature</span>
+  tasks.controller.ts         <span class="c"># routes: GET/POST/PATCH/DELETE /tasks</span>
+  tasks.service.ts            <span class="c"># the logic (in-memory array, in Part 1)</span>
+  entities/task.entity.ts     <span class="c"># the Task shape + TaskStatus enum</span>
+  dto/                        <span class="c"># create / update / query DTOs</span>
+<span class="d">common/</span>                      <span class="c"># the cross-cutting tools</span>
+  guards/api-key.guard.ts
+  filters/http-exception.filter.ts
+  interceptors/{logging,transform}.interceptor.ts
+  middleware/logger.middleware.ts
+  decorators/{user,public}.decorator.ts</div>
+
+  <p>Try it (Part 1 needs no database):</p>
+<pre><code>pnpm start:dev                       <span class="cmt"># http://localhost:3000</span>
+curl localhost:3000/tasks            <span class="cmt"># public read</span>
+curl -X POST localhost:3000/tasks \
+     -H <span class="str">'content-type: application/json'</span> \
+     -H <span class="str">'x-api-key: secret123'</span> \
+     -d <span class="str">'{"title":"My first task"}'</span>     <span class="cmt"># guarded write</span></code></pre>
+
+  <!-- ============================================================ -->
+  <h2 id="testing"><span class="num">09</span>Testing</h2>
+  <p class="lead">DI makes everything swappable; two layers of tests use that.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Unit — a tiny DI module</h3>
+<pre><code><span class="kw">const</span> mod = <span class="kw">await</span> Test.<span class="fn">createTestingModule</span>({
+  controllers: [AppController],
+  providers: [AppService],
+}).<span class="fn">compile</span>();
+<span class="kw">const</span> ctrl = mod.<span class="fn">get</span>(AppController);
+<span class="fn">expect</span>(ctrl.<span class="fn">getHello</span>()).<span class="fn">toBe</span>(<span class="str">'Hello World!'</span>);</code></pre>
+      <p style="font-size:13.5px;color:var(--muted)">Swap a real dependency for a mock with
+      <code>.overrideProvider(Dep).useValue(mock)</code>.</p>
+    </div>
+    <div class="card">
+      <h3>E2E — the real app + supertest</h3>
+<pre><code><span class="kw">const</span> app = mod.<span class="fn">createNestApplication</span>();
+<span class="kw">await</span> app.<span class="fn">init</span>();
+<span class="kw">return</span> <span class="fn">request</span>(app.<span class="fn">getHttpServer</span>())
+  .<span class="fn">get</span>(<span class="str">'/'</span>)
+  .<span class="fn">expect</span>(<span class="nm">200</span>)
+  .<span class="fn">expect</span>(<span class="str">'Hello World!'</span>);</code></pre>
+      <p style="font-size:13.5px;color:var(--muted)">Boots the whole module graph and makes real HTTP requests against it.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="cli"><span class="num">10</span>The Nest CLI — your daily driver</h2>
+<pre><code>npx nest g resource tasks   <span class="cmt"># scaffolds module+controller+service+dto+tests (full CRUD)</span>
+npx nest g module orders
+npx nest g controller orders
+npx nest g service orders
+npx nest g guard auth        <span class="cmt"># also: interceptor | pipe | filter | middleware | decorator</span>
+nest start --watch           <span class="cmt"># dev (pnpm start:dev)</span>
+nest build                   <span class="cmt"># compile to dist/</span></code></pre>
+  <p><code>g resource</code> is the big time-saver — it scaffolds an entire REST (or GraphQL) CRUD module in one command.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="gotchas"><span class="num">11</span>Mental models &amp; gotchas</h2>
+  <ul class="tight">
+    <li><b>Controllers stay thin.</b> They translate HTTP ↔ method calls. All logic belongs in services.</li>
+    <li><b>Order is everything.</b> Guard/pipe failures short-circuit before the handler; the exception filter is the only thing that runs after a throw.</li>
+    <li><b>Scope ladder:</b> method <span class="pill scope">@Use… on handler</span> → controller <span class="pill scope">@Use… on class</span> → global <span class="pill scope">main.ts or APP_*</span>.</li>
+    <li><b>Use <code>APP_*</code> tokens</b> for any global that needs DI; <code>app.useGlobalX()</code> otherwise.</li>
+    <li><b>DTOs are your trust boundary.</b> <code>whitelist</code> strips unknowns, <code>forbidNonWhitelisted</code> rejects them, <code>transform</code> coerces types.</li>
+    <li><b>Metadata + Reflector</b> is the pattern behind <code>@Public()</code>, <code>@Roles()</code>, and most declarative behavior.</li>
+  </ul>
+
+  <!-- ============================================================ -->
+  <h2 id="next"><span class="num">12</span>Where this leads</h2>
+  <p>This Part 1 API keeps its tasks in a plain in-memory array inside the service — great for learning the framework,
+  but the data evaporates on restart. <b>Part 2</b> replaces that array with a real Postgres database via
+  <code>@nestjs/typeorm</code>: entities that double as the schema, repositories injected into the service, and
+  migrations — and it walks through a subtle async bug the lifecycle in §04 helps explain.</p>
+  <p style="margin-top:18px;font-size:17px;"><a href="learnings-2.html">Continue to Part 2: From an in-memory array to a real database →</a></p>
+
+  <hr />
+  <footer>
+    Part 1 of 2 · NestJS 11 · companion to <span class="file">LEARN.md</span> and <a href="learnings-2.html">learnings-2.html</a> — open in any browser.
+  </footer>
+
+</div>
+</body>
+</html>

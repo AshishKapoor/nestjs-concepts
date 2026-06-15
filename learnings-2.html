@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS → Postgres: What We Learned</title>
+<style>
+  :root {
+    --bg: #0f1320;
+    --panel: #171c2e;
+    --panel-2: #1d2336;
+    --ink: #e7ebf6;
+    --muted: #9aa6c4;
+    --line: #2a3150;
+    --accent: #6ea8fe;
+    --accent-2: #8b7bff;
+    --green: #45c98a;
+    --amber: #f3c969;
+    --red: #ff6b81;
+    --code-bg: #0b0e18;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.65; font-size: 16px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px 120px; }
+  header.hero {
+    background:
+      radial-gradient(1200px 400px at 15% -10%, rgba(110,168,254,.22), transparent 60%),
+      radial-gradient(900px 360px at 95% 0%, rgba(139,123,255,.20), transparent 55%),
+      var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 64px 22px 46px;
+  }
+  .hero-inner { max-width: 1080px; margin: 0 auto; }
+  .kicker {
+    display: inline-block; letter-spacing: .14em; text-transform: uppercase;
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    background: rgba(110,168,254,.10); border: 1px solid rgba(110,168,254,.30);
+    padding: 5px 11px; border-radius: 999px;
+  }
+  h1 { font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; margin: 18px 0 10px; letter-spacing: -.02em; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-size: 18px; max-width: 760px; }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+  .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; min-width: 130px; }
+  .stat b { display: block; font-size: 22px; color: var(--ink); }
+  .stat span { font-size: 12.5px; color: var(--muted); }
+
+  h2 { font-size: 26px; margin: 56px 0 6px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; opacity: .9; }
+  h3 { font-size: 18.5px; margin: 30px 0 6px; color: #d6deff; }
+  h2 + .lead { color: var(--muted); margin-top: 4px; }
+  p { margin: 12px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .9em; background: rgba(255,255,255,.06); padding: 1.5px 6px; border-radius: 6px; color: #d9e2ff; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; overflow:auto; margin: 14px 0; }
+  pre code { background: none; padding: 0; font-size: 13.5px; line-height: 1.6; color: #cdd6f4; }
+  .cmt { color: #6f7aa3; } .kw { color: #c792ea; } .str { color: #c3e88d; } .fn { color: #82aaff; } .ty { color: #ffcb6b; } .nm { color: #f78c6c; }
+
+  .toc { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-top: 34px; }
+  .toc h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+  .toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 34px; }
+  .toc li { margin: 5px 0; }
+  @media (max-width: 680px){ .toc ol { columns: 1; } }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 4px 22px 18px; margin: 18px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px){ .grid { grid-template-columns: 1fr; } }
+
+  .callout { border-radius: 12px; padding: 14px 16px 14px 18px; margin: 18px 0; border: 1px solid var(--line); border-left-width: 4px; background: var(--panel-2); }
+  .callout .ct { font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+  .callout p { margin: 4px 0; }
+  .callout.why { border-left-color: var(--accent); } .callout.why .ct { color: var(--accent); }
+  .callout.warn { border-left-color: var(--amber); } .callout.warn .ct { color: var(--amber); }
+  .callout.bug { border-left-color: var(--red); } .callout.bug .ct { color: var(--red); }
+  .callout.ok { border-left-color: var(--green); } .callout.ok .ct { color: var(--green); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; }
+  td code { white-space: nowrap; }
+
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; margin: 18px 0; }
+  .step { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font-size: 13.5px; flex: 1 1 0; min-width: 120px; }
+  .step b { display:block; color: #cfd8ff; font-size: 13px; }
+  .step span { color: var(--muted); font-size: 12px; }
+  .arrow { align-self:center; color: var(--accent); padding: 0 8px; font-weight: 700; }
+  @media (max-width: 760px){ .arrow { transform: rotate(90deg); padding: 6px 0; } .flow { flex-direction: column; } }
+
+  .pill { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle; }
+  .pill.info { background: rgba(110,168,254,.14); color:#9cc0ff; border:1px solid rgba(110,168,254,.3); }
+  .pill.low { background: rgba(243,201,105,.14); color: var(--amber); border:1px solid rgba(243,201,105,.3); }
+  .pill.fixed { background: rgba(69,201,138,.14); color: var(--green); border:1px solid rgba(69,201,138,.3); }
+  .pill.myth { background: rgba(255,107,129,.12); color: var(--red); border:1px solid rgba(255,107,129,.3); }
+
+  .file { font-family: var(--mono); font-size: 12.5px; color: var(--accent-2); background: rgba(139,123,255,.10); border:1px solid rgba(139,123,255,.25); padding: 2px 9px; border-radius: 6px; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+  footer { color: var(--muted); font-size: 13.5px; text-align:center; margin-top: 60px; }
+  .badge-list { display:flex; flex-wrap:wrap; gap:8px; margin: 12px 0; }
+  .badge { font-size: 12.5px; background: var(--panel-2); border:1px solid var(--line); border-radius: 8px; padding: 5px 10px; color: var(--muted); }
+  .badge b { color: var(--ink); }
+  ul.tight li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 2 · NestJS · TypeORM · Postgres</span>
+    <h1>From an in-memory array to a <span class="grad">real database</span></h1>
+    <p style="margin:10px 0 0;font-size:14px;"><a href="learnings-1.html">← Part 1: NestJS fundamentals (the Tasks API before the database)</a></p>
+    <p class="sub">A guided write-up of how the Tasks API swapped its in-memory store for Postgres via
+    <code>@nestjs/typeorm</code> — entities, injected repositories, and migrations — plus the bug we hit,
+    why each design choice was made, and what an adversarial code review confirmed.</p>
+    <div class="stat-row">
+      <div class="stat"><b>1</b><span>real bug found &amp; fixed</span></div>
+      <div class="stat"><b>8</b><span>unit + e2e tests green</span></div>
+      <div class="stat"><b>1</b><span>migration generated</span></div>
+      <div class="stat"><b>20</b><span>review notes verified</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#big-picture">The big picture</a></li>
+      <li><a href="#flow">How a request reaches Postgres</a></li>
+      <li><a href="#entity">The entity = table + type</a></li>
+      <li><a href="#datasource">One connection, two consumers</a></li>
+      <li><a href="#wiring">Module wiring: forRoot vs forFeature</a></li>
+      <li><a href="#service">The service: injecting a repository</a></li>
+      <li><a href="#migrations">Migrations &amp; the schema workflow</a></li>
+      <li><a href="#infra">Docker &amp; environment</a></li>
+      <li><a href="#bug">Case study: the crash on 404</a></li>
+      <li><a href="#gotchas">Concepts &amp; gotchas worth keeping</a></li>
+      <li><a href="#testing">Testing: mock vs real DB</a></li>
+      <li><a href="#review">What the review confirmed (&amp; debunked)</a></li>
+      <li><a href="#commands">Command cheat sheet</a></li>
+      <li><a href="#next">Where to go next</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============================================================ -->
+  <h2 id="big-picture"><span class="num">01</span>The big picture</h2>
+  <p class="lead">What actually changed, and why it matters.</p>
+
+  <p>Before, <span class="file">tasks.service.ts</span> held a plain array (<code>private tasks: Task[]</code>) and a
+  counter for ids. It worked — until the process restarted, at which point every task vanished. A real app needs
+  data that <b>outlives the process</b>, can be <b>queried efficiently</b>, and whose <b>schema is version-controlled</b>.
+  That's the job of a database plus an ORM (Object–Relational Mapper).</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Before — in-memory</h3>
+<pre><code><span class="kw">private</span> tasks: Task[] = [];
+<span class="kw">private</span> nextId = <span class="nm">1</span>;
+
+create(dto) {
+  <span class="kw">const</span> task = { id: <span class="kw">this</span>.nextId++, ...dto };
+  <span class="kw">this</span>.tasks.push(task);
+  <span class="kw">return</span> task; <span class="cmt">// gone on restart</span>
+}</code></pre>
+    </div>
+    <div class="card">
+      <h3>After — Postgres via repository</h3>
+<pre><code><span class="kw">constructor</span>(
+  <span class="fn">@InjectRepository</span>(Task)
+  <span class="kw">private</span> repo: Repository&lt;Task&gt;,
+) {}
+
+<span class="kw">async</span> create(dto) {
+  <span class="kw">const</span> task = <span class="kw">this</span>.repo.create(dto);
+  <span class="kw">return</span> <span class="kw">this</span>.repo.save(task); <span class="cmt">// INSERT</span>
+}</code></pre>
+    </div>
+  </div>
+
+  <p>The three things the task asked for, each delivered:</p>
+  <table>
+    <tr><th>Goal</th><th>How</th><th>Where</th></tr>
+    <tr><td><b>Entities</b></td><td>A class decorated with <code>@Entity</code>/<code>@Column</code> that both describes the table and is the TypeScript type.</td><td><span class="file">tasks/entities/task.entity.ts</span></td></tr>
+    <tr><td><b>Repositories injected into the service</b></td><td><code>@InjectRepository(Task)</code> hands the service a <code>Repository&lt;Task&gt;</code> via DI.</td><td><span class="file">tasks/tasks.service.ts</span></td></tr>
+    <tr><td><b>Migrations</b></td><td>Versioned SQL files generated by diffing entities against the DB; applied deliberately with a CLI script.</td><td><span class="file">database/migrations/*.ts</span></td></tr>
+  </table>
+
+  <div class="callout ok">
+    <div class="ct">✓ Verified, not assumed</div>
+    <p>Every claim here was checked against a live Postgres (started with Docker): the app boots and connects,
+    full CRUD works, filtering + search work, and — the whole point — <b>data survives a restart</b>. We restarted
+    the server three times and the same row (<code>id=3 "Persisted task"</code>) was still there each time.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="flow"><span class="num">02</span>How a request reaches Postgres</h2>
+  <p class="lead">The NestJS lifecycle you already learned, now with a database at the end.</p>
+
+  <div class="flow">
+    <div class="step"><b>HTTP</b><span>GET /tasks?search=nest</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Guard / Pipe</b><span>ApiKeyGuard, ValidationPipe builds the DTO</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Controller</b><span>thin — calls the service, <code>return</code>s its promise</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Service</b><span><code>repo.findAndCount(...)</code></span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>TypeORM</b><span>builds parameterized SQL</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Postgres</b><span>rows + total</span></div>
+  </div>
+
+  <p>The new link in the chain is the last two boxes. The service no longer manipulates an array — it asks a
+  <b>repository</b> to talk to Postgres and <code>await</code>s the result. Because that's a network round-trip,
+  <b>every service method became <code>async</code></b>, which (as we'll see) has consequences upstream.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="entity"><span class="num">03</span>The entity = table + type</h2>
+  <p class="lead"><span class="file">src/tasks/entities/task.entity.ts</span></p>
+
+  <p>One class now plays two roles. To TypeScript it's the shape of a task; to TypeORM the decorators <i>are</i> the
+  schema. TypeORM reads them at startup to map each property to a column.</p>
+
+<pre><code><span class="fn">@Entity</span>(<span class="str">'tasks'</span>)              <span class="cmt">// backed by a table named "tasks"</span>
+<span class="kw">export class</span> <span class="ty">Task</span> {
+  <span class="fn">@PrimaryGeneratedColumn</span>()      <span class="cmt">// auto-increment PK (Postgres SERIAL)</span>
+  id: <span class="ty">number</span>;
+
+  <span class="fn">@Column</span>()
+  title: <span class="ty">string</span>;
+
+  <span class="fn">@Column</span>({ type: <span class="str">'text'</span>, nullable: <span class="kw">true</span> })   <span class="cmt">// matches the optional ?</span>
+  description?: <span class="ty">string</span>;
+
+  <span class="fn">@Column</span>({ type: <span class="str">'enum'</span>, enum: TaskStatus, <span class="nm">default</span>: TaskStatus.OPEN })
+  status: <span class="ty">TaskStatus</span>;
+
+  <span class="fn">@CreateDateColumn</span>()           <span class="cmt">// set automatically on INSERT</span>
+  createdAt: <span class="ty">Date</span>;
+}</code></pre>
+
+  <div class="callout why">
+    <div class="ct">Why an enum column</div>
+    <p>Declaring <code>type: 'enum'</code> makes Postgres create a real <code>ENUM</code> type, so the database itself
+    rejects an invalid status — defense in depth on top of the <code>@IsEnum</code> DTO validation. You can see it in
+    the generated migration: <code>CREATE TYPE "tasks_status_enum" AS ENUM('OPEN','IN_PROGRESS','DONE')</code>.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct">Subtle: who applies the <code>default</code>?</div>
+    <p>It's tempting to think <code>repo.create({title})</code> fills in <code>status: 'OPEN'</code> in memory. It does
+    <b>not</b> — we confirmed this by reading TypeORM's source: <code>create()</code> only does <code>new Task()</code>.
+    The <code>OPEN</code> value is supplied by the <b>Postgres column <code>DEFAULT</code> on INSERT</b> and read back via
+    the <code>RETURNING</code> clause that <code>save()</code> uses. The code comment was corrected to say exactly this.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="datasource"><span class="num">04</span>One connection, two consumers</h2>
+  <p class="lead"><span class="file">src/database/data-source.ts</span> — the single source of truth.</p>
+
+  <p>There are two completely separate programs that need to know how to reach the database: the <b>running app</b>
+  and the <b>migration CLI</b> (which runs outside NestJS). If each defined its own connection, they could drift apart.
+  So we define the options once and both import them.</p>
+
+<pre><code><span class="kw">import</span> <span class="str">'dotenv/config'</span>;          <span class="cmt">// the CLI runs outside Nest, so it needs dotenv</span>
+<span class="kw">import</span> { DataSource, DataSourceOptions } <span class="kw">from</span> <span class="str">'typeorm'</span>;
+<span class="kw">import</span> { Task } <span class="kw">from</span> <span class="str">'../tasks/entities/task.entity'</span>;
+
+<span class="kw">export const</span> dataSourceOptions: <span class="ty">DataSourceOptions</span> = {
+  type: <span class="str">'postgres'</span>,
+  host: process.env.DB_HOST ?? <span class="str">'localhost'</span>,
+  port: <span class="fn">parseInt</span>(process.env.DB_PORT ?? <span class="str">'5432'</span>, <span class="nm">10</span>),
+  username: process.env.DB_USERNAME ?? <span class="str">'postgres'</span>,
+  password: process.env.DB_PASSWORD ?? <span class="str">'postgres'</span>,
+  database: process.env.DB_NAME ?? <span class="str">'tasks'</span>,
+  entities: [Task],                              <span class="cmt">// explicit = robust src/ vs dist/</span>
+  migrations: [__dirname + <span class="str">'/migrations/*.{ts,js}'</span>], <span class="cmt">// glob: they accumulate</span>
+  synchronize: <span class="kw">false</span>,                            <span class="cmt">// ← critical, see below</span>
+};
+
+<span class="kw">export default new</span> <span class="ty">DataSource</span>(dataSourceOptions); <span class="cmt">// the CLI loads this default export</span></code></pre>
+
+  <div class="grid">
+    <div class="callout why" style="margin:14px 0">
+      <div class="ct">Why <code>forRoot</code>, not <code>forRootAsync</code>+ConfigService</div>
+      <p>The usual advice is to build options from <code>ConfigService</code>. But the CLI can't use Nest's DI, so the
+      options can't depend on <code>ConfigService</code> if they're to be shared. Reaching for <code>forRootAsync</code>
+      here would force a <i>second</i> copy of the config — exactly the drift we're avoiding. Sharing one plain object
+      is the better call for this project.</p>
+    </div>
+    <div class="callout why" style="margin:14px 0">
+      <div class="ct">Why dotenv appears twice (and it's fine)</div>
+      <p>The app loads env via <code>ConfigModule</code>; this file also does <code>import 'dotenv/config'</code>.
+      No conflict: dotenv <b>never overwrites</b> a key that's already set, and both read the same <code>.env</code>,
+      so the values are identical no matter which runs first. The CLI path uses only dotenv.</p>
+    </div>
+  </div>
+
+  <div class="callout bug">
+    <div class="ct">⚠ The <code>synchronize</code> footgun</div>
+    <p><code>synchronize: true</code> makes TypeORM auto-alter your tables to match the entities on <b>every boot</b> —
+    and it will silently <b>drop columns and data</b> to do it. It's seductive in a tutorial and catastrophic in
+    production. We keep it <code>false</code> and use migrations, which is the whole point of this step.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="wiring"><span class="num">05</span>Module wiring: <code>forRoot</code> vs <code>forFeature</code></h2>
+  <p class="lead">Two registrations with two different jobs.</p>
+
+  <table>
+    <tr><th>Call</th><th>Where</th><th>What it does</th></tr>
+    <tr><td><code>TypeOrmModule.forRoot(dataSourceOptions)</code></td><td><span class="file">app.module.ts</span></td><td>Opens the <b>one connection pool</b> for the whole app. Done once, at the root.</td></tr>
+    <tr><td><code>TypeOrmModule.forFeature([Task])</code></td><td><span class="file">tasks.module.ts</span></td><td>Registers a <b><code>Repository&lt;Task&gt;</code> provider</b> in this feature's DI scope so the service can inject it.</td></tr>
+  </table>
+
+  <p>Mental model: <code>forRoot</code> = "here's the database." <code>forFeature</code> = "this module works with these
+  tables, give it their repositories." Forget <code>forFeature</code> and you get the classic Nest error
+  <i>"Can't resolve dependencies of TasksService… <code>TaskRepository</code>"</i>.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="service"><span class="num">06</span>The service: injecting a repository</h2>
+  <p class="lead"><span class="file">src/tasks/tasks.service.ts</span></p>
+
+  <p>The repository is a thin data-access object with <code>find</code>/<code>save</code>/<code>delete</code>. A few
+  patterns worth internalizing:</p>
+
+<pre><code><span class="cmt">// LIST — typed WHERE + pagination in one query</span>
+<span class="kw">async</span> findAll(query) {
+  <span class="kw">const</span> where: <span class="ty">FindOptionsWhere</span>&lt;Task&gt; = {};        <span class="cmt">// typed, not Record&lt;…&gt;</span>
+  <span class="kw">if</span> (query.status) where.status = query.status;
+  <span class="kw">if</span> (query.search) where.title = <span class="fn">ILike</span>(<span class="str">`%${query.search}%`</span>); <span class="cmt">// case-insensitive</span>
+
+  <span class="kw">const</span> [items, total] = <span class="kw">await this</span>.repo.<span class="fn">findAndCount</span>({
+    where, order: { id: <span class="str">'ASC'</span> },
+    skip: (query.page - <span class="nm">1</span>) * query.limit,    <span class="cmt">// offset</span>
+    take: query.limit,                       <span class="cmt">// page size</span>
+  });
+  <span class="kw">return</span> { items, total, page: query.page, limit: query.limit };
+}
+
+<span class="cmt">// DELETE — one round-trip, "affected" gives us the 404 without a prior SELECT</span>
+<span class="kw">async</span> remove(id) {
+  <span class="kw">const</span> result = <span class="kw">await this</span>.repo.<span class="fn">delete</span>(id);
+  <span class="kw">if</span> (result.affected === <span class="nm">0</span>) <span class="kw">throw new</span> <span class="ty">NotFoundException</span>(<span class="str">`Task ${id} not found`</span>);
+}</code></pre>
+
+  <div class="badge-list">
+    <span class="badge"><b>findAndCount</b> returns <code>[rows, total]</code>; the count ignores skip/take — perfect for pagination.</span>
+    <span class="badge"><b>ILike</b> = Postgres case-insensitive <code>LIKE</code>; <code>%…%</code> makes it "contains".</span>
+    <span class="badge"><b>delete().affected</b> tells us if a row matched, so a missing id still 404s.</span>
+  </div>
+
+  <h3>Seeding on boot — with a caveat</h3>
+  <p>To keep the dev experience friendly, <code>onModuleInit()</code> seeds two tasks <b>only if the table is empty</b>.
+  That's idempotent across a single-instance restart (we proved it: restarts don't duplicate the seed). The honest
+  caveat, now noted in the code: it's a <i>check-then-act</i>, so two instances booting against the same empty DB could
+  both seed. Harmless here; worth knowing.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="migrations"><span class="num">07</span>Migrations &amp; the schema workflow</h2>
+  <p class="lead">Versioned, reviewable, deliberate schema changes.</p>
+
+  <p>A migration is a timestamped file with an <code>up()</code> (apply) and <code>down()</code> (undo). We generated the
+  first one by diffing the entity against the empty database:</p>
+
+<pre><code><span class="cmt">// src/database/migrations/…-InitTasks.ts  (generated, then committed)</span>
+<span class="kw">async</span> up(q) {
+  <span class="kw">await</span> q.<span class="fn">query</span>(<span class="str">`CREATE TYPE "tasks_status_enum" AS ENUM('OPEN','IN_PROGRESS','DONE')`</span>);
+  <span class="kw">await</span> q.<span class="fn">query</span>(<span class="str">`CREATE TABLE "tasks" ( "id" SERIAL …, "status" "tasks_status_enum"
+            NOT NULL DEFAULT 'OPEN', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), … )`</span>);
+}
+<span class="kw">async</span> down(q) {                       <span class="cmt">// the exact reverse</span>
+  <span class="kw">await</span> q.<span class="fn">query</span>(<span class="str">`DROP TABLE "tasks"`</span>);
+  <span class="kw">await</span> q.<span class="fn">query</span>(<span class="str">`DROP TYPE "tasks_status_enum"`</span>);
+}</code></pre>
+
+  <div class="callout why">
+    <div class="ct">The loop to memorize</div>
+    <p>Whenever you change an entity: <code>pnpm migration:generate ./src/database/migrations/Name</code> →
+    <b>read the generated SQL</b> → <code>pnpm migration:run</code>. A plain app restart will <b>not</b> add your new
+    column, because <code>synchronize</code> is false. That's a feature, not a bug — no surprise schema changes on deploy.</p>
+  </div>
+
+  <p>TypeORM tracks which migrations have run in a bookkeeping table it auto-creates (named <code>migrations</code>).
+  On <code>migration:run</code> it wraps everything in a transaction, applies the new ones, and records them — so running
+  it twice is safe (the second time, "0 migrations to execute").</p>
+
+  <!-- ============================================================ -->
+  <h2 id="infra"><span class="num">08</span>Docker &amp; environment</h2>
+  <p class="lead">Making the project self-contained.</p>
+
+  <p>A <span class="file">docker-compose.yml</span> brings up Postgres 16 with a named volume (so data survives
+  <code>docker compose down</code>) and a healthcheck. The DB credentials in compose match the <code>DB_*</code> vars
+  in <code>.env</code>. Secrets hygiene was verified: <code>.env</code> is gitignored and was never committed; only
+  <code>.env.example</code> (dev placeholders) is tracked.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="bug"><span class="num">09</span>Case study: the crash on 404 <span class="pill fixed">fixed</span></h2>
+  <p class="lead">The single most valuable lesson of this change.</p>
+
+  <p>After wiring everything up, <code>DELETE /tasks/9999</code> (a missing id) didn't return 404 — it <b>crashed the
+  entire Node process</b>, and the next request got a connection-refused. The logs showed the <code>NotFoundException</code>
+  was thrown correctly… and then killed the app as an <i>unhandled promise rejection</i>.</p>
+
+  <p>The culprit was in the controller, and it had been lurking harmlessly the whole time:</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Before — silently broken</h3>
+<pre><code><span class="fn">@Delete</span>(<span class="str">':id'</span>)
+<span class="fn">@HttpCode</span>(<span class="nm">204</span>)
+remove(<span class="fn">@Param</span>(<span class="str">'id'</span>) id) {
+  <span class="kw">this</span>.service.<span class="fn">remove</span>(id);  <span class="cmt">// ⚠ promise not returned</span>
+}</code></pre>
+    </div>
+    <div class="card">
+      <h3>After — one word</h3>
+<pre><code><span class="fn">@Delete</span>(<span class="str">':id'</span>)
+<span class="fn">@HttpCode</span>(<span class="nm">204</span>)
+remove(<span class="fn">@Param</span>(<span class="str">'id'</span>) id) {
+  <span class="kw">return</span> <span class="kw">this</span>.service.<span class="fn">remove</span>(id); <span class="cmt">// ✓ Nest awaits it</span>
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="callout bug">
+    <div class="ct">Why it only broke now</div>
+    <p>When <code>remove()</code> was <b>synchronous</b>, it threw <i>inside</i> the handler and Nest caught it → clean 404.
+    Once it became <b>async</b>, calling it without <code>return</code> produced a <b>floating promise</b>: the handler
+    returned <code>undefined</code> immediately (Nest sent 204), and the promise rejected <i>later</i> with nobody
+    awaiting it. Node 22 treats an unhandled rejection as fatal. Returning the promise lets Nest await it and route the
+    rejection through the exception filter → 404.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct">The general rule</div>
+    <p>The moment a function becomes <code>async</code>, <b>every caller must <code>return</code> or <code>await</code>
+    its promise</b>. A successful path hides the bug (the promise just resolves); only the <i>rejecting</i> path —
+    here, a 404 — exposes it. This is exactly the kind of latent issue that automated end-to-end testing catches and
+    eyeballing the diff does not.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="gotchas"><span class="num">10</span>Concepts &amp; gotchas worth keeping</h2>
+
+  <h3>Is the search SQL-injectable? No — and we proved why.</h3>
+  <p><code>ILike(`%${query.search}%`)</code> <i>looks</i> like string concatenation into SQL. It isn't. We traced
+  TypeORM's source: <code>ILike</code> produces a <code>FindOperator</code> whose value is bound as a driver
+  <b>parameter</b> (<code>$1</code>), never interpolated into the SQL text. A payload like
+  <code>%'; DROP TABLE tasks;--</code> is treated as a literal search string. (The only user-controllable-but-literal
+  characters are the <code>%</code>/<code>_</code> LIKE wildcards, which affect match scope, not query structure.)</p>
+
+  <h3>Type your <code>where</code> clause</h3>
+  <p>We changed <code>const where: Record&lt;string, unknown&gt;</code> to <code>FindOptionsWhere&lt;Task&gt;</code>. The loose
+  type compiled fine but would happily accept a typo like <code>where.titel</code>. The entity-aware type turns that into
+  a compile error — fitting for a codebase that prizes type-safety.</p>
+
+  <h3>Graceful shutdown</h3>
+  <p>We added <code>app.enableShutdownHooks()</code> in <span class="file">main.ts</span>. Without it, a container's
+  <code>SIGTERM</code> kills the process before TypeORM can run its teardown and close the connection pool. With it,
+  in-flight work can drain and connections close cleanly — a real deployment detail.</p>
+
+  <h3>The <code>204</code> + envelope curiosity</h3>
+  <p>The global <code>TransformInterceptor</code> wraps responses in <code>{ data: … }</code>, so a void delete technically
+  becomes <code>{ data: undefined }</code>. Harmless: Express strips the body on a 204, and <code>undefined</code> wouldn't
+  serialize anyway. Noted for awareness, not a fix.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="testing"><span class="num">11</span>Testing: mock vs real DB</h2>
+  <p class="lead">Two valid strategies, one used at each layer.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Unit tests — mock the repository</h3>
+      <p><span class="file">tasks.service.spec.ts</span> provides a tiny in-memory fake bound to
+      <code>getRepositoryToken(Task)</code>. No database needed; tests are fast and isolated, exercising the service's
+      real logic against a stand-in repo.</p>
+<pre><code>providers: [
+  TasksService,
+  { provide: <span class="fn">getRepositoryToken</span>(Task),
+    useValue: createRepositoryMock() },
+]</code></pre>
+    </div>
+    <div class="card">
+      <h3>E2E test — real app, real DB</h3>
+      <p><span class="file">test/app.e2e-spec.ts</span> boots the whole <code>AppModule</code>, so it connects to actual
+      Postgres. It passes today because it only hits <code>GET /</code>. The honest next step (see below) is a separate
+      <b>test database</b> so e2e writes never touch your dev data.</p>
+    </div>
+  </div>
+  <div class="callout warn">
+    <div class="ct">Mind the async rewrite in tests</div>
+    <p>Because the service is now async, the unit tests switched from <code>expect(() => …).toThrow()</code> to
+    <code>await expect(…).rejects.toThrow()</code>. The mock's <code>create()</code> injects the default status, which is
+    why the "defaults to OPEN" test passes against the fake — remember the <i>real</i> default comes from Postgres, so
+    only the e2e path truly proves it.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="review"><span class="num">12</span>What the review confirmed (&amp; debunked)</h2>
+  <p class="lead">An adversarial multi-agent review read every changed file across correctness, TypeORM/Nest practice,
+  security, and completeness — then independently verified each finding. 20 confirmed (almost all teaching notes),
+  6 rejected as false positives.</p>
+
+  <h3>Acted on</h3>
+  <table>
+    <tr><th>Finding</th><th>Status</th></tr>
+    <tr><td>DELETE handler leaked a floating promise (process crash on 404)</td><td><span class="pill fixed">fixed</span></td></tr>
+    <tr><td><code>where</code> typed as loose <code>Record</code> instead of <code>FindOptionsWhere&lt;Task&gt;</code></td><td><span class="pill fixed">fixed</span></td></tr>
+    <tr><td>Comment wrongly credited <code>create()</code> with the status default</td><td><span class="pill fixed">fixed</span></td></tr>
+    <tr><td>No graceful shutdown — pool not closed on SIGTERM</td><td><span class="pill fixed">fixed</span></td></tr>
+    <tr><td>Seeding's single-instance assumption was unstated</td><td><span class="pill fixed">noted in code</span></td></tr>
+  </table>
+
+  <h3>Confirmed as deliberate / safe <span class="pill info">info</span></h3>
+  <ul class="tight">
+    <li><b>ILike search is injection-safe</b> — TypeORM parameterizes the value (verified against source).</li>
+    <li><b>Double dotenv load is benign</b> — dotenv won't clobber existing keys; both paths agree.</li>
+    <li><b>Migrations run manually, not on boot</b> — correct, avoids surprise schema changes / multi-instance races.</li>
+    <li><b>Secrets hygiene is correct</b> — <code>.env</code> gitignored &amp; never committed; only <code>.env.example</code> tracked.</li>
+    <li><b>Default <code>postgres/postgres</code> creds</b> — fine for local Docker; would need real secrets &amp; not exposing port 5432 in production.</li>
+  </ul>
+
+  <h3>Myths the verifiers debunked <span class="pill myth">rejected</span></h3>
+  <ul class="tight">
+    <li><b>"PATCH can't clear <code>description</code>"</b> — false. <code>@IsOptional()</code> skips validation when the
+    value is <code>null</code>, so <code>{"description": null}</code> validates and writes NULL.</li>
+    <li><b>"Pagination secretly depends on transform:true"</b> — if transform were off, <code>@IsInt</code> would reject the
+    string with a 400, not let garbage through.</li>
+    <li><b>"The entities/migrations asymmetry is unexplained"</b> — the comments already explain it.</li>
+  </ul>
+
+  <h3>Pre-existing notes (outside this change's scope) <span class="pill low">low</span></h3>
+  <p>The review also flagged the <span class="file">api-key.guard.ts</span> (which predates this work): an unset
+  <code>API_KEY</code> makes <code>expected = ''</code>, so a blank <code>x-api-key:</code> header would authenticate
+  (fail-open). It's dormant because <code>.env</code> sets a key, but the robust pattern is to <b>fail closed</b> —
+  refuse to boot, or reject, when no key is configured. Left untouched to keep this change focused on the database.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="commands"><span class="num">13</span>Command cheat sheet</h2>
+<pre><code><span class="cmt"># 1. start Postgres</span>
+docker compose up -d
+
+<span class="cmt"># 2. apply the schema</span>
+pnpm migration:run
+
+<span class="cmt"># 3. run the API (http://localhost:3000)</span>
+pnpm start:dev
+
+<span class="cmt"># try it</span>
+curl localhost:3000/tasks
+curl -X POST localhost:3000/tasks -H <span class="str">'content-type: application/json'</span> \
+     -H <span class="str">'x-api-key: secret123'</span> -d <span class="str">'{"title":"My first task"}'</span>
+curl <span class="str">"localhost:3000/tasks?search=nest&status=OPEN"</span>
+
+<span class="cmt"># after changing an entity: generate → review SQL → run</span>
+pnpm migration:generate ./src/database/migrations/AddSomething
+pnpm migration:run
+pnpm migration:revert      <span class="cmt"># undo the last one</span>
+
+<span class="cmt"># quality gates</span>
+pnpm test        <span class="cmt"># unit (mocked repo, no DB)</span>
+pnpm test:e2e    <span class="cmt"># e2e (needs Postgres up)</span>
+pnpm lint &amp;&amp; pnpm build</code></pre>
+
+  <!-- ============================================================ -->
+  <h2 id="next"><span class="num">14</span>Where to go next</h2>
+  <p class="lead">The natural follow-on lessons, in roughly increasing depth.</p>
+
+  <table>
+    <tr><th>Topic</th><th>The lesson</th></tr>
+    <tr><td><b>Test database isolation</b></td><td>A <code>.env.test</code> with its own <code>DB_NAME</code> so e2e writes never touch dev data; truncate/migrate between runs.</td></tr>
+    <tr><td><b>Response DTOs</b></td><td>You have request DTOs but return the entity directly. Add a response shape (<code>ClassSerializerInterceptor</code> + <code>@Exclude</code>) so adding an internal column never leaks it. <i>Entities model the table; DTOs model the wire.</i></td></tr>
+    <tr><td><b>Transactions &amp; concurrency</b></td><td><code>update()</code> is a read-modify-write across two round-trips; two concurrent PATCHes can clobber each other. The textbook motivation for <code>dataSource.transaction()</code> and <code>@VersionColumn</code> optimistic locking.</td></tr>
+    <tr><td><b>Indexes</b></td><td>You filter on <code>status</code> and search <code>title</code>. A B-tree <code>@Index()</code> helps equality on status — but <i>not</i> a leading-wildcard <code>ILike '%x%'</code>, which needs a Postgres <code>pg_trgm</code> GIN index. Measure first.</td></tr>
+    <tr><td><b>Config validation</b></td><td>Give <code>ConfigModule</code> a Joi/zod schema so the app fails fast on a missing or malformed env var instead of silently using a default.</td></tr>
+    <tr><td><b>Production connection</b></td><td>TLS (<code>ssl</code>) and pool sizing (<code>extra: { max }</code>) for managed Postgres, gated behind <code>NODE_ENV</code>.</td></tr>
+  </table>
+
+  <hr />
+  <footer>
+    Built and verified against a live Postgres on 2026-06-15 · NestJS 11 · TypeORM 1.0 · Postgres 16<br/>
+    Part 2 of 2 · companion to <span class="file">LEARN.md</span> and <a href="learnings-1.html">learnings-1.html</a> — open in any browser.
+  </footer>
+
+</div>
+</body>
+</html>

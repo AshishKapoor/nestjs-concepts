@@ -113,15 +113,50 @@ A full Tasks REST API lives in `src/`:
 
 Run it:
 ```bash
+docker compose up -d                 # start Postgres (see docker-compose.yml)
+pnpm migration:run                   # create the tasks table
 pnpm start:dev                       # http://localhost:3000
 curl localhost:3000/tasks
 curl -X POST localhost:3000/tasks -H 'content-type: application/json' \
      -H 'x-api-key: secret123' -d '{"title":"My first task"}'
 ```
 
+## Database (TypeORM + Postgres) — DONE in this project
+
+The `tasks` data now lives in Postgres via `@nestjs/typeorm`. The pieces:
+
+| Piece | File | Job |
+| --- | --- | --- |
+| **Entity** | `tasks/entities/task.entity.ts` | `@Entity`/`@Column` decorators = the table schema AND the TS type. |
+| **Connection** | `database/data-source.ts` | One `dataSourceOptions` shared by the app (`TypeOrmModule.forRoot`) AND the migration CLI. `synchronize:false`. |
+| **Repository** | injected in `tasks.service.ts` | `@InjectRepository(Task) repo: Repository<Task>` — `find/save/delete`. Every call is `async`. |
+| **forFeature** | `tasks.module.ts` | `TypeOrmModule.forFeature([Task])` registers the `Repository<Task>` provider. |
+| **Migrations** | `database/migrations/*.ts` | Versioned SQL. `pnpm migration:generate <path>` diffs entities↔DB; `pnpm migration:run` applies. |
+
+```ts
+@Entity('tasks')
+export class Task {
+  @PrimaryGeneratedColumn() id: number;
+  @Column() title: string;
+  @Column({ type: 'enum', enum: TaskStatus, default: TaskStatus.OPEN }) status: TaskStatus;
+  @CreateDateColumn() createdAt: Date;
+}
+// service: const [items, total] = await this.repo.findAndCount({ where, skip, take });
+```
+
+**Gotcha learned the hard way:** once a service method is `async`, EVERY caller must `return`/`await`
+its promise. A controller that calls `this.service.remove(id)` without returning it leaks a floating
+promise — the 404 rejection then crashes the whole process instead of becoming a clean HTTP 404.
+
+`synchronize:true` is the footgun: it auto-alters tables on boot and will silently drop data. Real apps
+use **migrations** (off by default here). Never commit real DB credentials — `.env` is gitignored; only
+`.env.example` (with dev defaults) is tracked.
+
 ## Where to go next (real-app building blocks)
 
-1. **Database**: `@nestjs/typeorm` + Postgres, or Prisma. Repos injected into services.
+1. **Database**: ✅ done — `@nestjs/typeorm` + Postgres, repos injected, migrations. Next: transactions,
+   indexes, and a separate test database. See `learnings-2.html` for the full write-up
+   (and `learnings-1.html` for the NestJS fundamentals this project started from).
 2. **Auth**: `@nestjs/passport` + `@nestjs/jwt` → `AuthGuard('jwt')`, `@Roles()` guard.
 3. **Config/validation**: `@nestjs/config` with a Joi/zod schema for env vars.
 4. **API docs**: `@nestjs/swagger` → auto OpenAPI from your DTOs/decorators.
