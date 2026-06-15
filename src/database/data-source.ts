@@ -3,6 +3,7 @@
 // dotenv to read the same .env. Importing it here means both paths agree.
 import 'dotenv/config';
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { User } from '../auth/entities/user.entity';
 import { Task } from '../tasks/entities/task.entity';
 
 // ONE place that defines how to connect. It's imported by:
@@ -18,7 +19,7 @@ export const dataSourceOptions: DataSourceOptions = {
   database: process.env.DB_NAME ?? 'tasks',
   // Listing entities explicitly (vs a glob) is the most robust option — it works
   // the same whether we run from src/ (ts-node) or dist/ (compiled).
-  entities: [Task],
+  entities: [Task, User],
   // The CLI needs a glob because it writes/reads .ts in dev and .js once built.
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   // synchronize MUST be false in real apps: it auto-alters tables to match your

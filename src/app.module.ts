@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { AuthModule } from './auth/auth.module';
 import { dataSourceOptions } from './database/data-source';
 import { TasksModule } from './tasks/tasks.module';
 
@@ -19,6 +20,7 @@ import { TasksModule } from './tasks/tasks.module';
     // the exact options the migration CLI uses (see src/database/data-source.ts)
     // so the running app and the schema migrations can never disagree.
     TypeOrmModule.forRoot(dataSourceOptions),
+    AuthModule,
     TasksModule,
   ],
   controllers: [AppController],

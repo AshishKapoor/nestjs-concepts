@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS Auth: Passport + JWT + Roles</title>
+<style>
+  :root {
+    --bg:#0f1320; --panel:#171c2e; --panel-2:#1d2336; --ink:#e7ebf6; --muted:#9aa6c4;
+    --line:#2a3150; --accent:#6ea8fe; --accent-2:#8b7bff; --green:#45c98a; --amber:#f3c969; --red:#ff6b81;
+    --code-bg:#0b0e18; --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;} html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px;}
+  header.hero{background:radial-gradient(1200px 400px at 15% -10%,rgba(110,168,254,.22),transparent 60%),radial-gradient(900px 360px at 95% 0%,rgba(139,123,255,.20),transparent 55%),var(--panel);border-bottom:1px solid var(--line);padding:56px 22px 40px;}
+  .hero-inner{max-width:1080px;margin:0 auto;}
+  .kicker{display:inline-block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--accent);background:rgba(110,168,254,.10);border:1px solid rgba(110,168,254,.30);padding:5px 11px;border-radius:999px;}
+  h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em;}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .sub{color:var(--muted);font-size:18px;max-width:760px;}
+  .series{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 4px;}
+  .series a{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;}
+  .series a:hover{color:var(--ink);}
+  .series a.cur{color:#fff;background:linear-gradient(90deg,rgba(110,168,254,.3),rgba(139,123,255,.3));border-color:rgba(139,123,255,.5);font-weight:700;}
+  .stat-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:120px;}
+  .stat b{display:block;font-size:22px;} .stat span{font-size:12.5px;color:var(--muted);}
+  h2{font-size:26px;margin:54px 0 6px;letter-spacing:-.01em;scroll-margin-top:20px;}
+  h2 .num{color:var(--accent);margin-right:10px;} h3{font-size:18.5px;margin:30px 0 6px;color:#d6deff;}
+  h2 + .lead{color:var(--muted);margin-top:4px;} p{margin:12px 0;} a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
+  code{font-family:var(--mono);font-size:.9em;background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:6px;color:#d9e2ff;}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;margin:14px 0;}
+  pre code{background:none;padding:0;font-size:13.5px;line-height:1.6;color:#cdd6f4;}
+  .cmt{color:#6f7aa3;} .kw{color:#c792ea;} .str{color:#c3e88d;} .fn{color:#82aaff;} .ty{color:#ffcb6b;} .nm{color:#f78c6c;}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:30px;}
+  .toc h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:34px;} .toc li{margin:5px 0;}
+  @media(max-width:680px){.toc ol{columns:1;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 22px 18px;margin:18px 0;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;} @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+  .callout{border-radius:12px;padding:14px 16px 14px 18px;margin:18px 0;border:1px solid var(--line);border-left-width:4px;background:var(--panel-2);}
+  .callout .ct{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;} .callout p{margin:4px 0;}
+  .callout.why{border-left-color:var(--accent);} .callout.why .ct{color:var(--accent);}
+  .callout.warn{border-left-color:var(--amber);} .callout.warn .ct{color:var(--amber);}
+  .callout.bug{border-left-color:var(--red);} .callout.bug .ct{color:var(--red);}
+  .callout.ok{border-left-color:var(--green);} .callout.ok .ct{color:var(--green);}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;} th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;} td code{white-space:nowrap;}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:18px 0;}
+  .step{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:13.5px;flex:1 1 0;min-width:110px;}
+  .step b{display:block;color:#cfd8ff;font-size:13px;} .step span{color:var(--muted);font-size:12px;}
+  .arrow{align-self:center;color:var(--accent);padding:0 8px;font-weight:700;}
+  @media(max-width:760px){.arrow{transform:rotate(90deg);padding:6px 0;} .flow{flex-direction:column;}}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;}
+  .pill.ok{background:rgba(69,201,138,.14);color:var(--green);border:1px solid rgba(69,201,138,.3);}
+  .file{font-family:var(--mono);font-size:12.5px;color:var(--accent-2);background:rgba(139,123,255,.10);border:1px solid rgba(139,123,255,.25);padding:2px 9px;border-radius:6px;}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0;} footer{color:var(--muted);font-size:13.5px;text-align:center;margin-top:60px;}
+  ul.tight li{margin:4px 0;}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 3 · Authentication &amp; Authorization</span>
+    <h1>Who you are, and <span class="grad">what you may do</span></h1>
+    <div class="series">
+      <a href="learnings-1.html">1 · Fundamentals</a>
+      <a href="learnings-2.html">2 · Database</a>
+      <a class="cur">3 · Auth</a>
+      <a href="learnings-4.html">4 · Config</a>
+      <a href="learnings-5.html">5 · API Docs</a>
+      <a href="learnings-6.html">6 · Async &amp; Scale</a>
+      <a href="learnings-7.html">7 · Lifecycle</a>
+    </div>
+    <p class="sub">Stateless JWT auth with <code>@nestjs/passport</code> + <code>@nestjs/jwt</code>: a User table,
+    register/login with hashed passwords, a Passport <code>'jwt'</code> strategy behind <code>AuthGuard('jwt')</code>,
+    and a <code>@Roles()</code> guard for authorization — every piece verified end-to-end.</p>
+    <div class="stat-row">
+      <div class="stat"><b>2</b><span>guards (authn + authz)</span></div>
+      <div class="stat"><b>4</b><span>endpoints</span></div>
+      <div class="stat"><b>bcrypt</b><span>hashed passwords</span></div>
+      <div class="stat"><b>4</b><span>new unit tests</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#authn-authz">Authentication vs authorization</a></li>
+      <li><a href="#flow">The token lifecycle</a></li>
+      <li><a href="#pieces">The pieces</a></li>
+      <li><a href="#twoguards">Two guards, in order</a></li>
+      <li><a href="#security">Security decisions that matter</a></li>
+      <li><a href="#verified">Verified end-to-end</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#next">Where this leads</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="authn-authz"><span class="num">01</span>Authentication vs authorization</h2>
+  <p class="lead">Two different questions, two different guards.</p>
+  <p><b>Authentication</b> answers "who are you?" — proven by a signed token. <b>Authorization</b> answers "are you
+  allowed to do this?" — decided by your role. Conflating them is a classic source of security bugs, so this step keeps
+  them in separate guards: <span class="file">JwtAuthGuard</span> authenticates, <span class="file">RolesGuard</span>
+  authorizes.</p>
+  <p>JWT (JSON Web Token) makes auth <b>stateless</b>: the server signs a small token at login, the client sends it on
+  every request, and the server verifies the signature — no session store, no DB lookup per request.</p>
+
+  <h2 id="flow"><span class="num">02</span>The token lifecycle</h2>
+  <div class="flow">
+    <div class="step"><b>POST /auth/register</b><span>hash password (bcrypt), store User</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>POST /auth/login</b><span>verify hash → sign JWT</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Client</b><span><code>Authorization: Bearer &lt;token&gt;</code></span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>JwtAuthGuard</b><span>verify signature + expiry → req.user</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>RolesGuard</b><span>check @Roles vs req.user.role</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Handler</b><span>@CurrentUser()</span></div>
+  </div>
+
+  <h2 id="pieces"><span class="num">03</span>The pieces</h2>
+  <table>
+    <tr><th>Piece</th><th>File</th><th>Job</th></tr>
+    <tr><td><b>User entity</b></td><td><span class="file">auth/entities/user.entity.ts</span></td><td>email (unique), <code>passwordHash</code>, role enum. Backed by a generated migration.</td></tr>
+    <tr><td><b>AuthService</b></td><td><span class="file">auth/auth.service.ts</span></td><td>register (bcrypt hash), login (compare + sign JWT), seed-admin on init.</td></tr>
+    <tr><td><b>JwtStrategy</b></td><td><span class="file">auth/strategies/jwt.strategy.ts</span></td><td>extracts Bearer token, verifies, returns the <code>req.user</code> shape.</td></tr>
+    <tr><td><b>JwtAuthGuard</b></td><td><span class="file">auth/guards/jwt-auth.guard.ts</span></td><td><code>AuthGuard('jwt')</code> + respects <code>@Public()</code>.</td></tr>
+    <tr><td><b>RolesGuard + @Roles</b></td><td><span class="file">auth/guards/roles.guard.ts</span></td><td>reads role metadata via Reflector, 403 if not allowed.</td></tr>
+    <tr><td><b>@CurrentUser()</b></td><td><span class="file">auth/decorators/current-user.decorator.ts</span></td><td>param decorator pulling <code>req.user</code>.</td></tr>
+  </table>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Issue the token (login)</h3>
+<pre><code>const ok = user &amp;&amp;
+  await bcrypt.<span class="fn">compare</span>(dto.password, user.passwordHash);
+if (!ok) <span class="kw">throw new</span> <span class="ty">UnauthorizedException</span>(<span class="str">'Invalid credentials'</span>);
+
+const payload = { sub: user.id, email: user.email, role: user.role };
+return { accessToken: <span class="kw">await this</span>.jwt.<span class="fn">signAsync</span>(payload) };</code></pre>
+    </div>
+    <div class="card">
+      <h3>Verify the token (strategy)</h3>
+<pre><code><span class="kw">class</span> <span class="ty">JwtStrategy</span> <span class="kw">extends</span> <span class="fn">PassportStrategy</span>(Strategy, <span class="str">'jwt'</span>) {
+  constructor(config) {
+    super({
+      jwtFromRequest: ExtractJwt.<span class="fn">fromAuthHeaderAsBearerToken</span>(),
+      secretOrKey: config.<span class="fn">get</span>(<span class="str">'JWT_SECRET'</span>),
+    });
+  }
+  <span class="fn">validate</span>(payload) {        <span class="cmt">// only runs if signature is valid</span>
+    return { userId: payload.sub, email: payload.email, role: payload.role };
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="callout why">
+    <div class="ct">JwtModule.registerAsync — secret from config, not hard-coded</div>
+    <p>The signing secret comes from <code>JWT_SECRET</code> via <code>ConfigService</code> (the
+    <code>registerAsync</code> + <code>useFactory</code> + <code>inject</code> pattern). Part 4 adds a schema so the app
+    refuses to boot if that secret is missing.</p>
+  </div>
+
+  <h2 id="twoguards"><span class="num">04</span>Two guards, in order</h2>
+  <p>On the admin route, both guards run — authentication first, then authorization. Order matters: <code>RolesGuard</code>
+  relies on <code>req.user</code> that <code>JwtAuthGuard</code> populated.</p>
+<pre><code><span class="fn">@UseGuards</span>(JwtAuthGuard, RolesGuard)   <span class="cmt">// authn, then authz</span>
+<span class="fn">@Roles</span>(UserRole.ADMIN)
+<span class="fn">@Get</span>(<span class="str">'admin'</span>)
+adminOnly(<span class="fn">@CurrentUser</span>(<span class="str">'email'</span>) email: string) {
+  return { message: <span class="str">`Welcome, admin ${email}`</span> };
+}</code></pre>
+  <p>A request with no token → <b>401</b> (JwtAuthGuard). A valid USER token → <b>403</b> (RolesGuard). An ADMIN token →
+  <b>200</b>. The <code>@Roles()</code>/Reflector mechanism is the exact same metadata pattern as <code>@Public()</code>
+  from Part 1.</p>
+
+  <h2 id="security"><span class="num">05</span>Security decisions that matter</h2>
+  <ul class="tight">
+    <li><b>No <code>role</code> in <code>RegisterDto</code>.</b> Accepting a client-chosen role would let anyone register
+    as ADMIN — a privilege-escalation hole. New users always default to USER.</li>
+    <li><b>Identical login error.</b> Wrong email and wrong password both return "Invalid credentials" / 401, so an
+    attacker can't enumerate which emails exist.</li>
+    <li><b>The hash never leaves the server.</b> <code>register</code> returns a <code>SafeUser</code> with
+    <code>passwordHash</code> stripped; it's never serialized.</li>
+    <li><b>Passwords are bcrypt-hashed</b> (cost 10) — never stored or logged in plaintext.</li>
+    <li><b>Secret lives in config</b>, not source. The dev seed admin is gated behind env vars and flagged dev-only.</li>
+  </ul>
+
+  <div class="callout warn">
+    <div class="ct">Relationship to the existing ApiKeyGuard</div>
+    <p>Part 1's <code>ApiKeyGuard</code> still protects the Tasks routes — a single shared key that proves
+    "authenticated" but not "who." JWT is the per-user upgrade. They coexist here for teaching; a real app would pick
+    one and, to put Tasks behind JWT, apply <code>JwtAuthGuard</code> globally (it already honors <code>@Public()</code>)
+    and read the owner from <code>req.user</code>.</p>
+  </div>
+
+  <h2 id="verified"><span class="num">06</span>Verified end-to-end <span class="pill ok">all green</span></h2>
+  <table>
+    <tr><th>Request</th><th>Result</th></tr>
+    <tr><td>POST /auth/register</td><td>201 — returns user, no <code>passwordHash</code>, role <code>USER</code></td></tr>
+    <tr><td>POST /auth/register (duplicate email)</td><td>409 Conflict</td></tr>
+    <tr><td>POST /auth/register (password &lt; 8)</td><td>400 — ValidationPipe</td></tr>
+    <tr><td>POST /auth/login → GET /auth/me</td><td>200 — returns the JWT user</td></tr>
+    <tr><td>GET /auth/me (no token)</td><td>401</td></tr>
+    <tr><td>GET /auth/admin (USER token)</td><td>403</td></tr>
+    <tr><td>GET /auth/admin (ADMIN token)</td><td>200</td></tr>
+    <tr><td>POST /auth/login (wrong password)</td><td>401</td></tr>
+  </table>
+
+  <h2 id="gotchas"><span class="num">07</span>Gotchas</h2>
+  <ul class="tight">
+    <li><b><code>import type</code> for decorated params.</b> With <code>isolatedModules</code> + <code>emitDecoratorMetadata</code>,
+    a pure type used as a <code>@CurrentUser() user: JwtUser</code> param must be imported as <code>type</code>, or the
+    build fails (TS1272).</li>
+    <li><b><code>expiresIn</code> typing.</b> <code>@nestjs/jwt</code> types it via the <code>ms</code> library's
+    <code>StringValue</code> union, so a plain config string needs a cast to the option's own type.</li>
+    <li><b>JWT is stateless.</b> You can't "log out" a token server-side without extra machinery (a denylist or short
+    expiry + refresh tokens). That's the trade for not having sessions.</li>
+    <li><b>Don't put secrets in the payload.</b> A JWT is signed, not encrypted — anyone can base64-decode and read the
+    claims. Keep it to ids and roles.</li>
+  </ul>
+
+  <h2 id="next"><span class="num">08</span>Where this leads</h2>
+  <p>This auth works, but a production system would add: re-loading the user in <code>validate()</code> (to reject
+  deleted/disabled accounts), refresh tokens for longer sessions, and moving the Tasks routes behind JWT with
+  per-user ownership. First, though — <b>Part 4</b> hardens the thing all of this depends on: the environment config,
+  with a schema that fails fast when <code>JWT_SECRET</code> (or any required var) is missing.</p>
+  <p style="margin-top:18px;font-size:17px;"><a href="learnings-4.html">Continue to Part 4: Config &amp; validation →</a></p>
+
+  <hr/>
+  <footer>Part 3 of 7 · NestJS 11 · Passport + JWT · verified against a live Postgres.</footer>
+</div>
+</body>
+</html>
