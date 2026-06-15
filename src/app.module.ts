@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { LifecycleService } from './common/lifecycle/lifecycle.service';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { envValidationSchema } from './config/env.validation';
@@ -55,6 +56,9 @@ import { TasksModule } from './tasks/tasks.module';
     // main.ts) lets them use dependency injection. APP_GUARD / APP_PIPE exist too.
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    // Logs every lifecycle phase (startup + graceful shutdown) to make the
+    // order visible. Shutdown hooks fire thanks to app.enableShutdownHooks().
+    LifecycleService,
   ],
 })
 export class AppModule implements NestModule {
