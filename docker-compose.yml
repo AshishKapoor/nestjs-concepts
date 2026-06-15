@@ -1,5 +1,5 @@
-# Spins up the Postgres this app talks to. Run `docker compose up -d` before
-# `pnpm start:dev`. Credentials here must match the DB_* vars in your .env.
+# Spins up the Postgres + Redis this app talks to. Run `docker compose up -d`
+# before `pnpm start:dev`. Credentials here must match the .env (DB_* / REDIS_*).
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,6 +18,20 @@ services:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d tasks']
       interval: 5s
       timeout: 5s
+      retries: 5
+
+  # Redis backs the Bull job queue (@nestjs/bull). No volume — queue state here
+  # is ephemeral by design for a learning project.
+  redis:
+    image: redis:7-alpine
+    container_name: nestjs-tasks-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
       retries: 5
 
 volumes:

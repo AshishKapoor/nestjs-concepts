@@ -15,6 +15,8 @@ export interface EnvVars {
   JWT_EXPIRES_IN: string;
   ADMIN_EMAIL?: string;
   ADMIN_PASSWORD?: string;
+  REDIS_HOST: string;
+  REDIS_PORT: number;
 }
 
 // A schema for every environment variable the app relies on. ConfigModule runs
@@ -44,4 +46,8 @@ export const envValidationSchema = Joi.object<EnvVars>({
   // Dev-only admin seed — optional, but validated if present.
   ADMIN_EMAIL: Joi.string().email().optional(),
   ADMIN_PASSWORD: Joi.string().min(8).optional(),
+
+  // Redis (Part 6) — backs the Bull queue.
+  REDIS_HOST: Joi.string().default('localhost'),
+  REDIS_PORT: Joi.number().port().default(6379),
 });

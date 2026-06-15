@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS Async &amp; Scale: cron, cache, queues</title>
+<style>
+  :root{--bg:#0f1320;--panel:#171c2e;--panel-2:#1d2336;--ink:#e7ebf6;--muted:#9aa6c4;--line:#2a3150;--accent:#6ea8fe;--accent-2:#8b7bff;--green:#45c98a;--amber:#f3c969;--red:#ff6b81;--code-bg:#0b0e18;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;}html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px;}
+  header.hero{background:radial-gradient(1200px 400px at 15% -10%,rgba(110,168,254,.22),transparent 60%),radial-gradient(900px 360px at 95% 0%,rgba(139,123,255,.20),transparent 55%),var(--panel);border-bottom:1px solid var(--line);padding:56px 22px 40px;}
+  .hero-inner{max-width:1080px;margin:0 auto;}
+  .kicker{display:inline-block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--accent);background:rgba(110,168,254,.10);border:1px solid rgba(110,168,254,.30);padding:5px 11px;border-radius:999px;}
+  h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em;}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .sub{color:var(--muted);font-size:18px;max-width:760px;}
+  .series{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 4px;}
+  .series a{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;}
+  .series a:hover{color:var(--ink);} .series a.cur{color:#fff;background:linear-gradient(90deg,rgba(110,168,254,.3),rgba(139,123,255,.3));border-color:rgba(139,123,255,.5);font-weight:700;}
+  .stat-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:110px;} .stat b{display:block;font-size:22px;} .stat span{font-size:12.5px;color:var(--muted);}
+  h2{font-size:26px;margin:54px 0 6px;letter-spacing:-.01em;scroll-margin-top:20px;} h2 .num{color:var(--accent);margin-right:10px;}
+  h3{font-size:18.5px;margin:30px 0 6px;color:#d6deff;} h2 + .lead{color:var(--muted);margin-top:4px;}
+  p{margin:12px 0;} a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
+  code{font-family:var(--mono);font-size:.9em;background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:6px;color:#d9e2ff;}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;margin:14px 0;} pre code{background:none;padding:0;font-size:13.5px;line-height:1.6;color:#cdd6f4;}
+  .cmt{color:#6f7aa3;}.kw{color:#c792ea;}.str{color:#c3e88d;}.fn{color:#82aaff;}.ty{color:#ffcb6b;}.nm{color:#f78c6c;}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:30px;} .toc h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);} .toc ol{margin:0;padding-left:20px;columns:2;column-gap:34px;} .toc li{margin:5px 0;} @media(max-width:680px){.toc ol{columns:1;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 22px 18px;margin:18px 0;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;} @media(max-width:760px){.grid-3{grid-template-columns:1fr;}}
+  .callout{border-radius:12px;padding:14px 16px 14px 18px;margin:18px 0;border:1px solid var(--line);border-left-width:4px;background:var(--panel-2);} .callout .ct{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;} .callout p{margin:4px 0;}
+  .callout.why{border-left-color:var(--accent);} .callout.why .ct{color:var(--accent);} .callout.warn{border-left-color:var(--amber);} .callout.warn .ct{color:var(--amber);} .callout.ok{border-left-color:var(--green);} .callout.ok .ct{color:var(--green);}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;} th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;} th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:18px 0;}
+  .step{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:13.5px;flex:1 1 0;min-width:120px;} .step b{display:block;color:#cfd8ff;font-size:13px;} .step span{color:var(--muted);font-size:12px;}
+  .arrow{align-self:center;color:var(--accent);padding:0 8px;font-weight:700;} @media(max-width:760px){.arrow{transform:rotate(90deg);padding:6px 0;} .flow{flex-direction:column;}}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;} .pill.ok{background:rgba(69,201,138,.14);color:var(--green);border:1px solid rgba(69,201,138,.3);}
+  .file{font-family:var(--mono);font-size:12.5px;color:var(--accent-2);background:rgba(139,123,255,.10);border:1px solid rgba(139,123,255,.25);padding:2px 9px;border-radius:6px;}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0;} footer{color:var(--muted);font-size:13.5px;text-align:center;margin-top:60px;} ul.tight li{margin:4px 0;}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 6 · Async &amp; Scale</span>
+    <h1>Work that happens <span class="grad">off the request path</span></h1>
+    <div class="series">
+      <a href="learnings-1.html">1 · Fundamentals</a>
+      <a href="learnings-2.html">2 · Database</a>
+      <a href="learnings-3.html">3 · Auth</a>
+      <a href="learnings-4.html">4 · Config</a>
+      <a href="learnings-5.html">5 · API Docs</a>
+      <a class="cur">6 · Async &amp; Scale</a>
+      <a href="learnings-7.html">7 · Lifecycle</a>
+    </div>
+    <p class="sub">Three scale primitives, all verified live: scheduled jobs (<code>@nestjs/schedule</code>), response
+    caching (<code>cache-manager</code>), and a Redis-backed background queue (<code>@nestjs/bull</code>).</p>
+    <div class="stat-row">
+      <div class="stat"><b>@Cron</b><span>every 5s</span></div>
+      <div class="stat"><b>15s</b><span>cache TTL</span></div>
+      <div class="stat"><b>Bull</b><span>+ Redis</span></div>
+      <div class="stat"><b>0</b><span>gRPC (scoped out)</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#three">Three primitives, one theme</a></li>
+      <li><a href="#cron">Scheduling with @Cron</a></li>
+      <li><a href="#cache">Caching</a></li>
+      <li><a href="#queue">Queues with Bull + Redis</a></li>
+      <li><a href="#wire">Wiring it together</a></li>
+      <li><a href="#verified">Verified live</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#next">Where this leads</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="three"><span class="num">01</span>Three primitives, one theme</h2>
+  <p class="lead">Keep slow or repeated work out of the user's request.</p>
+  <p>All three tools share a goal: don't make the HTTP request wait for work it doesn't need to. A <b>cron</b> job runs
+  on a timer with no request at all; a <b>cache</b> skips repeated expensive work; a <b>queue</b> defers slow side
+  effects to a background worker so the response returns immediately. This step adds a representative slice — the
+  microservices/gRPC transport is deliberately out of scope for this REST app.</p>
+
+  <div class="grid-3">
+    <div class="card"><h3>⏱ Schedule</h3><p style="font-size:14px;color:var(--muted)">Run code on a timer. No request involved.</p></div>
+    <div class="card"><h3>⚡ Cache</h3><p style="font-size:14px;color:var(--muted)">Reuse a result for a TTL window instead of recomputing.</p></div>
+    <div class="card"><h3>📬 Queue</h3><p style="font-size:14px;color:var(--muted)">Hand work to a worker; respond now, process later.</p></div>
+  </div>
+
+  <h2 id="cron"><span class="num">02</span>Scheduling with @Cron</h2>
+  <p class="lead"><span class="file">tasks/tasks.scheduler.ts</span></p>
+<pre><code><span class="fn">@Injectable</span>()
+<span class="kw">export class</span> <span class="ty">TasksScheduler</span> {
+  constructor(<span class="kw">private readonly</span> stats: <span class="ty">TasksStatsService</span>) {}
+
+  <span class="fn">@Cron</span>(<span class="str">'*/5 * * * * *'</span>)   <span class="cmt">// 6 fields: sec min hour dom mon dow → every 5s</span>
+  <span class="kw">async</span> <span class="fn">heartbeat</span>() {
+    <span class="kw">const</span> { total } = <span class="kw">await this</span>.stats.<span class="fn">getStats</span>();
+    <span class="kw">this</span>.logger.<span class="fn">log</span>(<span class="str">`heartbeat: ${total} task(s) in the DB`</span>);
+  }
+}</code></pre>
+  <p>Enabled by <code>ScheduleModule.forRoot()</code> in AppModule, which scans providers for <code>@Cron</code>/
+  <code>@Interval</code>/<code>@Timeout</code> at startup. Use <code>CronExpression</code> constants for common schedules.</p>
+
+  <h2 id="cache"><span class="num">03</span>Caching</h2>
+  <p class="lead"><span class="file">tasks/tasks-stats.service.ts</span> — manual get/set around an "expensive" DB count.</p>
+<pre><code><span class="kw">async</span> <span class="fn">getStats</span>() {
+  <span class="kw">const</span> hit = <span class="kw">await this</span>.cache.<span class="fn">get</span>&lt;<span class="ty">TaskStats</span>&gt;(KEY);
+  <span class="kw">if</span> (hit) <span class="kw">return</span> { ...hit, cached: <span class="kw">true</span> };       <span class="cmt">// HIT — no DB</span>
+  <span class="kw">const</span> total = <span class="kw">await this</span>.tasks.<span class="fn">count</span>();           <span class="cmt">// MISS — query</span>
+  <span class="kw">const</span> stats = { total, generatedAt: <span class="kw">new</span> <span class="ty">Date</span>().<span class="fn">toISOString</span>(), cached: <span class="kw">false</span> };
+  <span class="kw">await this</span>.cache.<span class="fn">set</span>(KEY, stats, <span class="nm">15_000</span>);          <span class="cmt">// TTL in ms (cache-manager v7)</span>
+  <span class="kw">return</span> stats;
+}</code></pre>
+  <p>Because <code>generatedAt</code> is fixed when the value is computed, two calls within the 15s window return the
+  <b>same timestamp</b> — visible proof the second call never touched the database. <code>CACHE_MANAGER</code> comes from
+  a global <code>CacheModule.register({ isGlobal: true })</code>.</p>
+
+  <h2 id="queue"><span class="num">04</span>Queues with Bull + Redis</h2>
+  <p class="lead">A producer enqueues; a consumer processes — connected through Redis.</p>
+  <div class="flow">
+    <div class="step"><b>POST /tasks/:id/remind</b><span>HTTP handler</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>RemindersService</b><span>queue.add('remind', {taskId})</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>Redis</b><span>holds the job</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>RemindersProcessor</b><span>@Process('remind') runs later</span></div>
+  </div>
+<pre><code><span class="cmt">// producer — returns immediately</span>
+<span class="fn">@Injectable</span>() <span class="kw">class</span> <span class="ty">RemindersService</span> {
+  constructor(<span class="fn">@InjectQueue</span>(<span class="str">'reminders'</span>) <span class="kw">private</span> queue: <span class="ty">Queue</span>) {}
+  <span class="fn">enqueue</span>(taskId) { <span class="kw">return this</span>.queue.<span class="fn">add</span>(<span class="str">'remind'</span>, { taskId }); }
+}
+
+<span class="cmt">// consumer — runs in the background, after the response is sent</span>
+<span class="fn">@Processor</span>(<span class="str">'reminders'</span>) <span class="kw">class</span> <span class="ty">RemindersProcessor</span> {
+  <span class="fn">@Process</span>(<span class="str">'remind'</span>)
+  <span class="fn">handle</span>(job: <span class="ty">Job</span>&lt;{ taskId: number }&gt;) {
+    <span class="kw">this</span>.logger.<span class="fn">log</span>(<span class="str">`processing reminder job ${job.id} for task ${job.data.taskId}`</span>);
+  }
+}</code></pre>
+
+  <h2 id="wire"><span class="num">05</span>Wiring it together</h2>
+<pre><code><span class="cmt">// AppModule</span>
+ScheduleModule.<span class="fn">forRoot</span>(),
+CacheModule.<span class="fn">register</span>({ isGlobal: <span class="kw">true</span> }),
+BullModule.<span class="fn">forRootAsync</span>({                 <span class="cmt">// Redis connection from config</span>
+  inject: [ConfigService],
+  useFactory: (c) =&gt; ({ redis: { host: c.<span class="fn">get</span>(<span class="str">'REDIS_HOST'</span>), port: c.<span class="fn">get</span>(<span class="str">'REDIS_PORT'</span>) } }),
+}),
+
+<span class="cmt">// TasksModule</span>
+BullModule.<span class="fn">registerQueue</span>({ name: <span class="str">'reminders'</span> }),</code></pre>
+  <p>Redis is added to <span class="file">docker-compose.yml</span>, and <code>REDIS_HOST</code>/<code>REDIS_PORT</code> are
+  in the Joi schema from Part 4 (with sensible defaults).</p>
+
+  <h2 id="verified"><span class="num">06</span>Verified live <span class="pill ok">from the logs</span></h2>
+<pre><code>[TasksStats] stats cache MISS — querying DB        <span class="cmt">← first call hits the DB</span>
+[TasksStats] stats cache HIT                       <span class="cmt">← subsequent calls don't</span>
+[TasksCron]  heartbeat: 2 task(s) in the DB        <span class="cmt">← fires every 5s, no request</span>
+[TasksCron]  heartbeat: 2 task(s) in the DB
+[Reminders]  processing reminder job 1 for task 3  <span class="cmt">← ran AFTER POST returned 201</span></code></pre>
+  <p>And <code>GET /tasks/stats</code> returns the same <code>generatedAt</code> on back-to-back calls — the cache in action.</p>
+
+  <h2 id="gotchas"><span class="num">07</span>Gotchas</h2>
+  <ul class="tight">
+    <li><b>Route order: <code>@Get('stats')</code> must precede <code>@Get(':id')</code></b> — otherwise "stats" matches
+    the <code>:id</code> param and <code>ParseIntPipe</code> 400s on it.</li>
+    <li><b>cache-manager v7 ttl is milliseconds.</b> Older majors used seconds — an easy off-by-1000 trap.</li>
+    <li><b><code>import type</code> again.</b> <code>Queue</code>, <code>Job</code>, and <code>Cache</code> are pure types
+    used in decorated constructor/handler signatures, so they must be type-imported (TS1272).</li>
+    <li><b>The processor runs in the same process here.</b> Real scaling moves consumers to separate worker processes so
+    background load doesn't compete with request handling.</li>
+    <li><b>Bull needs Redis to boot.</b> The app (and e2e tests) now depend on Redis being up, just as they depend on
+    Postgres. Both are in <code>docker compose up -d</code>.</li>
+    <li><b>Out of scope:</b> microservices/gRPC transports — they don't fit this single REST service, so they were
+    intentionally left for a dedicated project.</li>
+  </ul>
+
+  <h2 id="next"><span class="num">08</span>Where this leads</h2>
+  <p>The app can now schedule, cache, and defer work. One foundational topic remains: the <b>lifecycle</b> — the hooks
+  that run as modules start up and as the process shuts down (which is how the queue, the DB pool, and in-flight jobs
+  get to finish cleanly). That's <b>Part 7</b>.</p>
+  <p style="margin-top:18px;font-size:17px;"><a href="learnings-7.html">Continue to Part 7: Lifecycle hooks →</a></p>
+
+  <hr/>
+  <footer>Part 6 of 7 · NestJS 11 · @nestjs/schedule + cache-manager + @nestjs/bull · verified against live Postgres + Redis.</footer>
+</div>
+</body>
+</html>

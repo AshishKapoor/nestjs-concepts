@@ -20,7 +20,9 @@ import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { QueryTasksDto } from './dto/query-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { RemindersService } from './reminders.service';
 import { TasksService } from './tasks.service';
+import { TasksStatsService } from './tasks-stats.service';
 
 // @Controller('tasks') => every route below is prefixed with /tasks.
 // @UseGuards runs the ApiKeyGuard before every handler (unless @Public()).
@@ -31,13 +33,25 @@ import { TasksService } from './tasks.service';
 @UseInterceptors(TransformInterceptor)
 @Controller('tasks')
 export class TasksController {
-  // The service is injected by the DI container — we never call `new`.
-  constructor(private readonly tasksService: TasksService) {}
+  // The services are injected by the DI container — we never call `new`.
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly tasksStats: TasksStatsService,
+    private readonly reminders: RemindersService,
+  ) {}
 
   @Get() // GET /tasks?status=OPEN&search=nest&page=1&limit=10
   @Public() // bypass the guard so anyone can read
   findAll(@Query() query: QueryTasksDto) {
     return this.tasksService.findAll(query);
+  }
+
+  // NOTE: this MUST be declared before @Get(':id') — otherwise "stats" would
+  // match the :id param route and ParseIntPipe would 400 on it.
+  @Get('stats') // GET /tasks/stats — cached for 15s (see TasksStatsService)
+  @Public()
+  getStats() {
+    return this.tasksStats.getStats();
   }
 
   @Get(':id') // GET /tasks/1
@@ -71,5 +85,12 @@ export class TasksController {
     // — e.g. the NotFoundException for a missing id — becomes an UNHANDLED promise
     // rejection that crashes the process instead of turning into a 404.
     return this.tasksService.remove(id);
+  }
+
+  @Post(':id/remind') // POST /tasks/1/remind — enqueue a background reminder
+  @ApiSecurity('api-key')
+  remind(@Param('id', ParseIntPipe) id: number) {
+    // Returns immediately; RemindersProcessor handles the job off the request path.
+    return this.reminders.enqueue(id);
   }
 }
