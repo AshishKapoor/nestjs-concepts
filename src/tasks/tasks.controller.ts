@@ -45,10 +45,11 @@ export class TasksController {
   }
 
   @Post() // POST /tasks   (requires x-api-key header)
-  create(@Body() dto: CreateTaskDto, @User('name') createdBy: string) {
+  async create(@Body() dto: CreateTaskDto, @User('name') createdBy: string) {
     // @Body() is validated against CreateTaskDto. @User('name') is our custom
     // param decorator pulling the user the guard attached to the request.
-    return { ...this.tasksService.create(dto), createdBy };
+    // The service is async now, so await the saved task before spreading it.
+    return { ...(await this.tasksService.create(dto)), createdBy };
   }
 
   @Patch(':id') // PATCH /tasks/1
@@ -59,6 +60,10 @@ export class TasksController {
   @Delete(':id') // DELETE /tasks/1
   @HttpCode(204) // override the default 200 -> 204 No Content
   remove(@Param('id', ParseIntPipe) id: number) {
-    this.tasksService.remove(id);
+    // MUST return the promise. The service is async now, so if we don't return
+    // (or await) it, the handler resolves immediately with 204 and any rejection
+    // — e.g. the NotFoundException for a missing id — becomes an UNHANDLED promise
+    // rejection that crashes the process instead of turning into a 404.
+    return this.tasksService.remove(id);
   }
 }

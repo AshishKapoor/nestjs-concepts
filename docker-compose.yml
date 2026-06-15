@@ -1,0 +1,24 @@
+# Spins up the Postgres this app talks to. Run `docker compose up -d` before
+# `pnpm start:dev`. Credentials here must match the DB_* vars in your .env.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nestjs-tasks-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tasks
+    ports:
+      - '5432:5432'
+    volumes:
+      # Named volume => data survives `docker compose down` (use `down -v` to wipe).
+      - tasks_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d tasks']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tasks_pgdata:

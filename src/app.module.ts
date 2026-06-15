@@ -1,11 +1,13 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { dataSourceOptions } from './database/data-source';
 import { TasksModule } from './tasks/tasks.module';
 
 @Module({
@@ -13,6 +15,10 @@ import { TasksModule } from './tasks/tasks.module';
     // isGlobal:true => ConfigService is injectable everywhere without re-importing.
     // It loads variables from `.env` into process.env.
     ConfigModule.forRoot({ isGlobal: true }),
+    // forRoot establishes the ONE database connection for the whole app. We reuse
+    // the exact options the migration CLI uses (see src/database/data-source.ts)
+    // so the running app and the schema migrations can never disagree.
+    TypeOrmModule.forRoot(dataSourceOptions),
     TasksModule,
   ],
   controllers: [AppController],
