@@ -8,14 +8,22 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { AuthModule } from './auth/auth.module';
+import { envValidationSchema } from './config/env.validation';
 import { dataSourceOptions } from './database/data-source';
 import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
     // isGlobal:true => ConfigService is injectable everywhere without re-importing.
-    // It loads variables from `.env` into process.env.
-    ConfigModule.forRoot({ isGlobal: true }),
+    // It loads variables from `.env` into process.env, then validates them against
+    // our Joi schema — a missing/invalid var fails the boot with a clear message.
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      // allowUnknown: let OS vars (PATH, HOME, …) through. abortEarly:false so a
+      // bad config reports EVERY problem at once, not just the first.
+      validationOptions: { allowUnknown: true, abortEarly: false },
+    }),
     // forRoot establishes the ONE database connection for the whole app. We reuse
     // the exact options the migration CLI uses (see src/database/data-source.ts)
     // so the running app and the schema migrations can never disagree.

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NestJS Config: validate your environment</title>
+<style>
+  :root{--bg:#0f1320;--panel:#171c2e;--panel-2:#1d2336;--ink:#e7ebf6;--muted:#9aa6c4;--line:#2a3150;--accent:#6ea8fe;--accent-2:#8b7bff;--green:#45c98a;--amber:#f3c969;--red:#ff6b81;--code-bg:#0b0e18;--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;}html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px;}
+  header.hero{background:radial-gradient(1200px 400px at 15% -10%,rgba(110,168,254,.22),transparent 60%),radial-gradient(900px 360px at 95% 0%,rgba(139,123,255,.20),transparent 55%),var(--panel);border-bottom:1px solid var(--line);padding:56px 22px 40px;}
+  .hero-inner{max-width:1080px;margin:0 auto;}
+  .kicker{display:inline-block;letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--accent);background:rgba(110,168,254,.10);border:1px solid rgba(110,168,254,.30);padding:5px 11px;border-radius:999px;}
+  h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em;}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .sub{color:var(--muted);font-size:18px;max-width:760px;}
+  .series{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 4px;}
+  .series a{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;}
+  .series a:hover{color:var(--ink);} .series a.cur{color:#fff;background:linear-gradient(90deg,rgba(110,168,254,.3),rgba(139,123,255,.3));border-color:rgba(139,123,255,.5);font-weight:700;}
+  .stat-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:120px;}
+  .stat b{display:block;font-size:22px;} .stat span{font-size:12.5px;color:var(--muted);}
+  h2{font-size:26px;margin:54px 0 6px;letter-spacing:-.01em;scroll-margin-top:20px;} h2 .num{color:var(--accent);margin-right:10px;}
+  h3{font-size:18.5px;margin:30px 0 6px;color:#d6deff;} h2 + .lead{color:var(--muted);margin-top:4px;}
+  p{margin:12px 0;} a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
+  code{font-family:var(--mono);font-size:.9em;background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:6px;color:#d9e2ff;}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;margin:14px 0;}
+  pre code{background:none;padding:0;font-size:13.5px;line-height:1.6;color:#cdd6f4;}
+  .cmt{color:#6f7aa3;}.kw{color:#c792ea;}.str{color:#c3e88d;}.fn{color:#82aaff;}.ty{color:#ffcb6b;}.nm{color:#f78c6c;}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:30px;}
+  .toc h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);} .toc ol{margin:0;padding-left:20px;} .toc li{margin:5px 0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 22px 18px;margin:18px 0;}
+  .callout{border-radius:12px;padding:14px 16px 14px 18px;margin:18px 0;border:1px solid var(--line);border-left-width:4px;background:var(--panel-2);}
+  .callout .ct{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;} .callout p{margin:4px 0;}
+  .callout.why{border-left-color:var(--accent);} .callout.why .ct{color:var(--accent);}
+  .callout.warn{border-left-color:var(--amber);} .callout.warn .ct{color:var(--amber);}
+  .callout.ok{border-left-color:var(--green);} .callout.ok .ct{color:var(--green);}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;} th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;} .pill.ok{background:rgba(69,201,138,.14);color:var(--green);border:1px solid rgba(69,201,138,.3);}
+  .file{font-family:var(--mono);font-size:12.5px;color:var(--accent-2);background:rgba(139,123,255,.10);border:1px solid rgba(139,123,255,.25);padding:2px 9px;border-radius:6px;}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0;} footer{color:var(--muted);font-size:13.5px;text-align:center;margin-top:60px;}
+  ul.tight li{margin:4px 0;}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <span class="kicker">Part 4 · Config &amp; Validation</span>
+    <h1>Fail fast on a <span class="grad">broken environment</span></h1>
+    <div class="series">
+      <a href="learnings-1.html">1 · Fundamentals</a>
+      <a href="learnings-2.html">2 · Database</a>
+      <a href="learnings-3.html">3 · Auth</a>
+      <a class="cur">4 · Config</a>
+      <a href="learnings-5.html">5 · API Docs</a>
+      <a href="learnings-6.html">6 · Async &amp; Scale</a>
+      <a href="learnings-7.html">7 · Lifecycle</a>
+    </div>
+    <p class="sub">A Joi schema wired into <code>ConfigModule</code> so the app refuses to boot when a required env var
+    is missing or malformed — turning a 2am production mystery into a one-line startup error.</p>
+    <div class="stat-row">
+      <div class="stat"><b>12</b><span>vars validated</span></div>
+      <div class="stat"><b>fail-fast</b><span>on bad config</span></div>
+      <div class="stat"><b>5</b><span>schema unit tests</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>What's inside</h4>
+    <ol>
+      <li><a href="#why">Why validate the environment</a></li>
+      <li><a href="#schema">The schema</a></li>
+      <li><a href="#wire">Wiring it into ConfigModule</a></li>
+      <li><a href="#demo">Fail-fast, demonstrated</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#next">Where this leads</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="why"><span class="num">01</span>Why validate the environment</h2>
+  <p class="lead">Fail at boot, not on the first request.</p>
+  <p>Without validation, a missing <code>JWT_SECRET</code> doesn't bite until someone tries to log in — in production,
+  at the worst possible time. With a schema, the app checks every variable <b>at startup</b> and refuses to boot with a
+  precise message. The earlier the failure, the cheaper the fix. This is the same "validate at the boundary" instinct as
+  the DTOs from Part 1 — just applied to config instead of request bodies.</p>
+
+  <h2 id="schema"><span class="num">02</span>The schema</h2>
+  <p class="lead"><span class="file">src/config/env.validation.ts</span> — Joi, the schema <code>@nestjs/config</code> understands natively.</p>
+<pre><code><span class="kw">export const</span> envValidationSchema = Joi.<span class="fn">object</span>&lt;<span class="ty">EnvVars</span>&gt;({
+  NODE_ENV: Joi.<span class="fn">string</span>().<span class="fn">valid</span>(<span class="str">'development'</span>,<span class="str">'test'</span>,<span class="str">'production'</span>).<span class="fn">default</span>(<span class="str">'development'</span>),
+  PORT: Joi.<span class="fn">number</span>().<span class="fn">port</span>().<span class="fn">default</span>(<span class="nm">3000</span>),
+  API_KEY: Joi.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">1</span>).<span class="fn">required</span>(),
+  DB_HOST: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
+  DB_PORT: Joi.<span class="fn">number</span>().<span class="fn">port</span>().<span class="fn">default</span>(<span class="nm">5432</span>),    <span class="cmt">// "5432" string -> 5432 number</span>
+  DB_USERNAME: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
+  DB_PASSWORD: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
+  DB_NAME: Joi.<span class="fn">string</span>().<span class="fn">required</span>(),
+  JWT_SECRET: Joi.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">16</span>).<span class="fn">required</span>(),   <span class="cmt">// short secrets are a real weakness</span>
+  JWT_EXPIRES_IN: Joi.<span class="fn">string</span>().<span class="fn">default</span>(<span class="str">'1h'</span>),
+  ADMIN_EMAIL: Joi.<span class="fn">string</span>().<span class="fn">email</span>().<span class="fn">optional</span>(),
+  ADMIN_PASSWORD: Joi.<span class="fn">string</span>().<span class="fn">min</span>(<span class="nm">8</span>).<span class="fn">optional</span>(),
+});</code></pre>
+  <p>Notice the schema does double duty: <code>required()</code> guards presence, <code>default()</code> fills sensible
+  fallbacks, and <code>number()</code>/<code>port()</code> <b>coerce</b> the string env values into the right types.</p>
+
+  <h2 id="wire"><span class="num">03</span>Wiring it into ConfigModule</h2>
+<pre><code>ConfigModule.<span class="fn">forRoot</span>({
+  isGlobal: <span class="kw">true</span>,
+  validationSchema: envValidationSchema,
+  validationOptions: { allowUnknown: <span class="kw">true</span>, abortEarly: <span class="kw">false</span> },
+}),</code></pre>
+  <div class="card">
+    <table>
+      <tr><th>Option</th><th>Why</th></tr>
+      <tr><td><code>allowUnknown: true</code></td><td>The environment is full of vars you don't model (<code>PATH</code>, <code>HOME</code>…). Without this, every one of them would fail validation.</td></tr>
+      <tr><td><code>abortEarly: false</code></td><td>Report <b>every</b> problem at once, so you fix five missing vars in one pass instead of five restarts.</td></tr>
+    </table>
+  </div>
+
+  <h2 id="demo"><span class="num">04</span>Fail-fast, demonstrated <span class="pill ok">verified</span></h2>
+  <p>Booting with a bad variable now stops the app cold with an exact message:</p>
+<pre><code>$ DB_PORT=notaport node dist/main.js
+ERROR [ExceptionHandler] Error: Config validation error: <span class="str">"DB_PORT" must be a number</span>
+
+$ JWT_SECRET=tiny node dist/main.js
+ERROR [ExceptionHandler] Error: Config validation error: <span class="str">"JWT_SECRET" length must be at least 16 characters long</span></code></pre>
+  <p>With a valid <code>.env</code>, the app boots normally — and the 5 schema unit tests cover defaults, coercion,
+  a missing required var, a too-short secret, and the report-all-errors behavior.</p>
+
+  <h2 id="gotchas"><span class="num">05</span>Gotchas</h2>
+  <ul class="tight">
+    <li><b>The migration CLI isn't covered.</b> <span class="file">data-source.ts</span> reads <code>process.env</code>
+    directly (it runs outside Nest), so the schema only guards the <i>app</i> boot, not <code>migration:run</code>.
+    A fair trade — the app is where bad config does the damage.</li>
+    <li><b>Joi types <code>value</code> as <code>any</code>.</b> Typing the schema with <code>Joi.object&lt;EnvVars&gt;</code>
+    documents intent, but to read fields type-safely you still cast to the <code>EnvVars</code> interface.</li>
+    <li><b>Defaults are applied to the validated config</b>, so <code>ConfigService.get('PORT')</code> returns the
+    coerced/defaulted value, not the raw string.</li>
+  </ul>
+
+  <h2 id="next"><span class="num">06</span>Where this leads</h2>
+  <p>The environment is now trustworthy — every dependency the previous steps rely on (DB creds, JWT secret) is
+  guaranteed present and well-formed before a single request is served. <b>Part 5</b> makes the API itself
+  self-describing with Swagger / OpenAPI, generated automatically from the DTOs and decorators you already wrote.</p>
+  <p style="margin-top:18px;font-size:17px;"><a href="learnings-5.html">Continue to Part 5: API docs with Swagger →</a></p>
+
+  <hr/>
+  <footer>Part 4 of 7 · NestJS 11 · @nestjs/config + Joi · fail-fast verified.</footer>
+</div>
+</body>
+</html>
