@@ -15,7 +15,7 @@ A learning project that builds a full Tasks REST API using NestJS. Each layer of
 
 ## Prerequisites
 
-- Node 20+, pnpm, Docker
+- Node 24+, pnpm, Docker
 
 ## Quick start
 
